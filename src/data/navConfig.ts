@@ -5,8 +5,8 @@ export type NavLink = {
 };
 
 export const topNavLinks: NavLink[] = [
-  { label: "📚 全部内容", value: "全部", count: 4184 },
-  { label: "🤖 AI与游戏", value: "AI与游戏", count: 268 },
+  { label: "全部情报", value: "全部", count: 4184 },
+  { label: "AI 与游戏", value: "AI与游戏", count: 268 },
 ];
 
 export const directCategoryLinks: NavLink[] = [

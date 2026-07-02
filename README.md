@@ -33,4 +33,4 @@ npm start
 - 构建命令：`npm run build`
 - 构建产物目录：`dist`
 
-如果要保留真后端，需要把 `/api/*` 反向代理到一个 Node 服务，或改接 Supabase/Postgres 等外部数据库 API。直接静态部署时，帽子云不会运行 `server/index.mjs`。
+如果要保留真后端，需要把 `/api/*` 反向代理到一个 Node 服务，或设置环境变量 `VITE_API_BASE=https://你的后端域名` 后重新构建。直接静态部署时，帽子云不会运行 `server/index.mjs`。

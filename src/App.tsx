@@ -57,6 +57,8 @@ const emptyDraft: SourceDraft = {
   status: "启用",
 };
 
+const apiBase = import.meta.env.VITE_API_BASE?.replace(/\/$/, "") || "";
+
 const primaryLinks = [
   { label: "📚 全部内容", tag: "全部" },
   { label: "❤️ 我的收藏", tag: "收藏" },
@@ -69,7 +71,7 @@ const primaryLinks = [
 const categoryLinks = ["小游戏", "发行", "研发", "出海", "其他", "玩法 / 主题", "按公众号"];
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetch(`${apiBase}${url}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });

@@ -78,7 +78,7 @@ export async function loginOrigin(username, password) {
   const nextUser = text(username) || originUser;
   const nextPassword = String(password || originPassword || "");
   if (!nextUser || !nextPassword) {
-    throw originError("需要原站账号密码：请登录，或在服务端配置 XIANJIAN_USERNAME / XIANJIAN_PASSWORD。", 401, "ORIGIN_AUTH_REQUIRED");
+    throw originError("需要原站账号密码：请在服务端配置 XIANJIAN_USERNAME / XIANJIAN_PASSWORD。", 401, "ORIGIN_AUTH_REQUIRED");
   }
 
   originCookie = "";
@@ -115,7 +115,7 @@ async function fetchOriginHtml(pathname, retry = true) {
     return fetchOriginHtml(pathname, false);
   }
   if (isLoginPage(result.html, result.url)) {
-    throw originError("原站登录态已失效，请重新登录。", 401, "ORIGIN_AUTH_REQUIRED");
+    throw originError("原站登录态已失效，请检查服务端原站账号密码配置。", 401, "ORIGIN_AUTH_REQUIRED");
   }
   return result.html;
 }

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { fetchOriginItem, fetchOriginItems, loginOrigin } from "./originClient.mjs";
+import { fetchOriginItem, fetchOriginItems } from "./originClient.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -11,8 +11,6 @@ const originalSources = JSON.parse(readFileSync(path.join(rootDir, "src", "data"
 const dataDir = process.env.DATA_DIR || path.join(rootDir, "data");
 const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
-const appUsername = process.env.APP_USERNAME || "111";
-const appPassword = process.env.APP_PASSWORD || "111";
 
 const seedData = {
   sources: originalSources,
@@ -74,17 +72,6 @@ app.use(express.json({ limit: "256kb" }));
 
 app.get("/api/health", (_request, response) => {
   response.json({ ok: true });
-});
-
-app.post("/api/login", async (request, response, next) => {
-  try {
-    const { username, password } = request.body || {};
-    const isAppLogin = String(username || "").trim() === appUsername && String(password || "") === appPassword;
-    await (isAppLogin ? loginOrigin() : loginOrigin(username, password));
-    response.json({ ok: true });
-  } catch (error) {
-    next(error);
-  }
 });
 
 app.get("/api/items", async (request, response, next) => {

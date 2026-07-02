@@ -29,40 +29,6 @@ button {
   cursor: pointer;
 }
 
-.login-page {
-  min-height: 100vh;
-  display: grid;
-  place-items: start center;
-  padding: 96px 20px 32px;
-}
-
-.login-card {
-  width: min(100%, 384px);
-  padding: 32px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
-}
-
-.login-card h1 {
-  margin: 0 0 4px;
-  font-size: 18px;
-}
-
-.login-card p {
-  margin: 0;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.login-form {
-  display: grid;
-  gap: 12px;
-  margin-top: 26px;
-}
-
-.login-form input,
 .search-control input,
 .source-form input,
 .source-form textarea,
@@ -75,14 +41,12 @@ button {
   outline: none;
 }
 
-.login-form input,
 .source-form input,
 .source-form textarea,
 .source-form select {
   padding: 10px 12px;
 }
 
-.login-form input:focus,
 .search-control:focus-within,
 .source-form input:focus,
 .source-form textarea:focus,
@@ -91,7 +55,6 @@ button {
   box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.22);
 }
 
-.login-form button,
 .submit-button {
   display: inline-flex;
   align-items: center;
@@ -103,16 +66,6 @@ button {
   background: #0f172a;
   color: #ffffff;
   font-weight: 700;
-}
-
-.login-note {
-  margin-top: 16px;
-}
-
-.login-note button {
-  border: 0;
-  background: transparent;
-  color: #0284c7;
 }
 
 .form-error {
@@ -151,21 +104,6 @@ button {
   text-align: left;
   font-size: 16px;
   font-weight: 800;
-}
-
-.account-links {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.account-links button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #64748b;
 }
 
 .search-control {
@@ -750,7 +688,6 @@ button {
 }
 
 @media (max-width: 640px) {
-  .login-page,
   .main-panel,
   .sidebar {
     padding: 16px;

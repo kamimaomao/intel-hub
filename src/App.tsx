@@ -30,6 +30,7 @@ type PageMode = "items" | "admin";
 
 type SourceAccount = {
   id: string;
+  sourceType?: "公众号" | "视频号";
   name: string;
   wechatId: string;
   description: string;
@@ -59,6 +60,7 @@ type IntelDetail = Omit<IntelItem, "signals" | "tag"> & {
 };
 
 type SourceDraft = {
+  sourceType: SourceAccount["sourceType"];
   name: string;
   wechatId: string;
   tags: string;
@@ -67,6 +69,7 @@ type SourceDraft = {
 };
 
 const emptyDraft: SourceDraft = {
+  sourceType: "公众号",
   name: "",
   wechatId: "",
   tags: "AI与游戏",
@@ -195,7 +198,9 @@ function Sidebar({
   onSummarySizeChange: (size: number) => void;
   onLogout: () => void;
 }) {
-  const authorSources = sources.length > 0 ? sources : fallbackSources;
+  const availableSources = sources.length > 0 ? sources : fallbackSources;
+  const authorSources = availableSources.filter((source) => (source.sourceType || "公众号") === "公众号");
+  const videoSources = availableSources.filter((source) => source.sourceType === "视频号");
 
   function tagActive(value: string) {
     return pageMode === "items" && !activeAuthor && !activeSpecial && activeTag === value;
@@ -293,6 +298,30 @@ function Sidebar({
                 <strong>{source.originalCount || ""}</strong>
               </button>
             ))}
+          </div>
+        </details>
+
+        <details className="nav-group" open={videoSources.some((source) => activeAuthor === source.name) || undefined}>
+          <summary>
+            <span>▸ 🎬 按视频号</span>
+            <strong>{videoSources.length}</strong>
+          </summary>
+          <div>
+            {videoSources.length === 0 ? (
+              <div className="nav-empty">后台添加视频号后显示在这里</div>
+            ) : (
+              videoSources.map((source) => (
+                <button
+                  className={`nav-subrow ${activeAuthor === source.name ? "active" : ""}`.trim()}
+                  key={source.id}
+                  type="button"
+                  onClick={() => onSelectAuthor(source.name)}
+                >
+                  <span>{source.name}</span>
+                  <strong>{source.originalCount || ""}</strong>
+                </button>
+              ))
+            )}
           </div>
         </details>
 
@@ -546,14 +575,23 @@ function SourceForm({
   onDraftChange: (draft: SourceDraft) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const accountLabel = draft.sourceType === "视频号" ? "视频号账号/主页链接" : "微信号";
+
   return (
     <form className="source-form" onSubmit={onSubmit}>
       <label>
-        <span>公众号名称</span>
+        <span>来源类型</span>
+        <select value={draft.sourceType} onChange={(event) => onDraftChange({ ...draft, sourceType: event.target.value as SourceAccount["sourceType"] })}>
+          <option value="公众号">公众号</option>
+          <option value="视频号">视频号</option>
+        </select>
+      </label>
+      <label>
+        <span>{draft.sourceType === "视频号" ? "视频号名称" : "公众号名称"}</span>
         <input value={draft.name} onChange={(event) => onDraftChange({ ...draft, name: event.target.value })} required />
       </label>
       <label>
-        <span>微信号</span>
+        <span>{accountLabel}</span>
         <input value={draft.wechatId} onChange={(event) => onDraftChange({ ...draft, wechatId: event.target.value })} required />
       </label>
       <label>
@@ -574,7 +612,7 @@ function SourceForm({
       {error && <div className="form-error wide">{error}</div>}
       <button className="submit-button wide" type="submit" disabled={saving}>
         <CirclePlus size={16} />
-        {saving ? "保存中..." : "添加公众号"}
+        {saving ? "保存中..." : `添加${draft.sourceType}`}
       </button>
     </form>
   );
@@ -597,12 +635,15 @@ function AdminPage({
   onDraftChange: (draft: SourceDraft) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const publicAccountCount = sources.filter((source) => (source.sourceType || "公众号") === "公众号").length;
+  const videoAccountCount = sources.filter((source) => source.sourceType === "视频号").length;
+
   return (
     <main className="main-panel admin-panel">
       <div className="page-head">
         <div className="title-row">
           <h1>后台管理</h1>
-          <span>{sources.length} 个公众号源</span>
+          <span>{publicAccountCount} 个公众号源 · {videoAccountCount} 个视频号源</span>
         </div>
       </div>
       {offline && <div className="offline-banner">当前为静态演示模式，公众号保存在本浏览器；接通后端后会写入服务端。</div>}
@@ -612,8 +653,8 @@ function AdminPage({
           <div className="card-head">
             <Settings size={18} />
             <div>
-              <h2>添加公众号</h2>
-              <p>提交后写入服务端数据文件，并立即同步到来源列表。</p>
+              <h2>添加来源</h2>
+              <p>支持公众号和视频号。视频号先作为来源保存，并尝试按作者查询原站内容。</p>
             </div>
           </div>
           <SourceForm draft={draft} error={error} saving={saving} onDraftChange={onDraftChange} onSubmit={onSubmit} />
@@ -623,7 +664,7 @@ function AdminPage({
           <div className="card-head">
             <Newspaper size={18} />
             <div>
-              <h2>公众号源</h2>
+              <h2>情报源</h2>
               <p>后续抓取任务可从这里读取启用源。</p>
             </div>
           </div>
@@ -631,7 +672,7 @@ function AdminPage({
             {sources.map((source) => (
               <section key={source.id}>
                 <div>
-                  <h3>{source.name}</h3>
+                  <h3><span className="source-type">{source.sourceType || "公众号"}</span>{source.name}</h3>
                   <p>{source.description || "暂无简介"}</p>
                   <small>
                     {source.wechatId} · {source.tags.join(" / ")}
@@ -743,6 +784,7 @@ export default function App() {
       const source = offline
         ? {
             id: `${draft.wechatId.trim() || draft.name.trim()}-${Date.now()}`,
+            sourceType: draft.sourceType,
             name: draft.name.trim(),
             wechatId: draft.wechatId.trim(),
             description: draft.description.trim(),

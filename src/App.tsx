@@ -4,8 +4,6 @@ import {
   CirclePlus,
   ExternalLink,
   Heart,
-  LogIn,
-  LogOut,
   Megaphone,
   MessageCircle,
   Newspaper,
@@ -124,49 +122,6 @@ function filterItems(items: IntelItem[], tag: string, query: string) {
   });
 }
 
-function LoginScreen({ onLogin }: { onLogin: (offline?: boolean) => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    try {
-      const result = await api<{ ok: boolean }>("/api/login", {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      });
-      if (result.ok) {
-        onLogin();
-      } else {
-        setError("原站登录失败");
-      }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "登录失败，请检查原站账号密码");
-    }
-  }
-
-  return (
-    <main className="login-page">
-      <section className="login-card" aria-label="登录">
-        <h1>📚 游戏研究所pro</h1>
-        <p>使用本站账号登录后读取真实文章</p>
-        <form className="login-form" onSubmit={submit}>
-          <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="账号" autoFocus />
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="密码" />
-          <button type="submit">
-            <LogIn size={16} />
-            登录
-          </button>
-        </form>
-        {error && <div className="form-error">{error}</div>}
-        <p className="login-note">默认账号：111 / 111</p>
-      </section>
-    </main>
-  );
-}
-
 function Sidebar({
   activeTag,
   activeAuthor,
@@ -181,7 +136,6 @@ function Sidebar({
   onPageModeChange,
   onQueryChange,
   onSummarySizeChange,
-  onLogout,
 }: {
   activeTag: string;
   activeAuthor: string;
@@ -196,7 +150,6 @@ function Sidebar({
   onPageModeChange: (mode: PageMode) => void;
   onQueryChange: (query: string) => void;
   onSummarySizeChange: (size: number) => void;
-  onLogout: () => void;
 }) {
   const availableSources = sources.length > 0 ? sources : fallbackSources;
   const authorSources = availableSources.filter((source) => (source.sourceType || "公众号") === "公众号");
@@ -226,11 +179,6 @@ function Sidebar({
         <button type="button" className="brand-link" onClick={() => onSelectTag("全部", "全部内容")}>
           📚 游戏行业情报库
         </button>
-        <div className="account-links">
-          <button type="button">改密码</button>
-          <span>·</span>
-          <button type="button" onClick={onLogout}>退出</button>
-        </div>
       </div>
 
       <label className="search-control">
@@ -690,8 +638,7 @@ function AdminPage({
 }
 
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [offline, setOffline] = useState(false);
+  const offline = false;
   const [pageMode, setPageMode] = useState<PageMode>("items");
   const [activeTag, setActiveTag] = useState("AI与游戏");
   const [activeTitle, setActiveTitle] = useState("AI与游戏");
@@ -767,7 +714,7 @@ export default function App() {
         setItems([]);
         setTotal(0);
         setSources(loadOfflineSources());
-        setLoadError(error instanceof Error ? error.message : "没有连上真实数据后端。请部署 Node 服务，并使用原站账号登录。");
+        setLoadError(error instanceof Error ? error.message : "没有连上真实数据后端。请部署 Node 服务，并配置原站账号密码环境变量。");
         setLoading(false);
       }
     });
@@ -808,17 +755,6 @@ export default function App() {
     } finally {
       setSaving(false);
     }
-  }
-
-  if (!loggedIn) {
-    return (
-      <LoginScreen
-        onLogin={(nextOffline = false) => {
-          setOffline(nextOffline);
-          setLoggedIn(true);
-        }}
-      />
-    );
   }
 
   return (
@@ -867,7 +803,6 @@ export default function App() {
         }}
         onQueryChange={setQuery}
         onSummarySizeChange={setSummarySize}
-        onLogout={() => setLoggedIn(false)}
       />
       {selectedItemId ? (
         <DetailPage itemId={selectedItemId} onBack={() => setSelectedItemId("")} />
@@ -892,7 +827,6 @@ export default function App() {
         <BookOpen size={16} />
         <Megaphone size={16} />
         <MessageCircle size={16} />
-        <LogOut size={16} />
       </div>
     </div>
   );

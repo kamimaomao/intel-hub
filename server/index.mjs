@@ -26,7 +26,9 @@ async function ensureDataFile() {
     const current = JSON.parse(await readFile(dataFile, "utf8"));
     const placeholderNames = new Set(["游戏AI观察", "独游产品实验室"]);
     const currentSources = Array.isArray(current.sources)
-      ? current.sources.filter((source) => !placeholderNames.has(source.name))
+      ? current.sources
+          .filter((source) => !placeholderNames.has(source.name))
+          .map((source) => ({ sourceType: "公众号", ...source }))
       : [];
     const existingNames = new Set(currentSources.map((source) => source.name));
     const missingSources = originalSources.filter((source) => !existingNames.has(source.name));
@@ -119,14 +121,16 @@ app.post("/api/sources", async (request, response, next) => {
   try {
     const name = String(request.body?.name || "").trim();
     const wechatId = String(request.body?.wechatId || "").trim();
+    const sourceType = request.body?.sourceType === "视频号" ? "视频号" : "公众号";
     if (!name || !wechatId) {
-      response.status(400).json({ error: "公众号名称和微信号必填" });
+      response.status(400).json({ error: "来源名称和账号/链接必填" });
       return;
     }
 
     const data = await readData();
     const source = {
-      id: `${slug(wechatId || name)}-${Date.now()}`,
+      id: `${slug(sourceType)}-${slug(wechatId || name)}-${Date.now()}`,
+      sourceType,
       name,
       wechatId,
       description: String(request.body?.description || "").trim(),

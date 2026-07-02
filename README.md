@@ -16,9 +16,11 @@ npm install
 npm run dev
 ```
 
-登录页使用原站账号密码。也可以在服务端环境变量里配置：
+登录页默认本站账号是 `111 / 111`。服务端会使用环境变量里的原站账号读取真实文章：
 
 ```bash
+APP_USERNAME=111
+APP_PASSWORD=111
 XIANJIAN_USERNAME=你的账号
 XIANJIAN_PASSWORD=你的密码
 ```
@@ -46,6 +48,6 @@ npm start
 - 启动命令：`npm start`
 - Node.js：20.18.1 或更高版本
 - 端口：使用平台注入的 `PORT`
-- 可选环境变量：`XIANJIAN_USERNAME`、`XIANJIAN_PASSWORD`
+- 可选环境变量：`APP_USERNAME`、`APP_PASSWORD`、`XIANJIAN_USERNAME`、`XIANJIAN_PASSWORD`
 
 如果平台只能部署静态产物，需要另外部署一个 Node 服务，并设置 `VITE_API_BASE=https://你的后端域名` 后重新构建。

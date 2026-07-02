@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import originalSources from "./data/originalSources.json";
 
 type ViewMode = "double" | "single" | "compact";
 type PageMode = "items" | "admin";
@@ -26,6 +27,7 @@ type SourceAccount = {
   tags: string[];
   status: "启用" | "停用";
   createdAt: string;
+  originalCount?: number;
 };
 
 type IntelItem = {
@@ -58,37 +60,8 @@ const emptyDraft: SourceDraft = {
 };
 
 const apiBase = import.meta.env.VITE_API_BASE?.replace(/\/$/, "") || "";
-const offlineSourcesKey = "intel-hub-offline-sources-v1";
-
-const fallbackSources: SourceAccount[] = [
-  {
-    id: "gamelook",
-    name: "GameLook",
-    wechatId: "GameLook",
-    description: "行业大盘、新游、厂商动态与商业化观察。",
-    tags: ["发行", "行业大盘", "AI与游戏"],
-    status: "启用",
-    createdAt: "2026-06-18",
-  },
-  {
-    id: "game-ai-watch",
-    name: "游戏AI观察",
-    wechatId: "game-ai-watch",
-    description: "跟踪 AI 工具、玩法生成、智能 NPC 与研发效率。",
-    tags: ["AI与游戏", "AI工具", "研发"],
-    status: "启用",
-    createdAt: "2026-06-24",
-  },
-  {
-    id: "indie-product-lab",
-    name: "独游产品实验室",
-    wechatId: "indie-product-lab",
-    description: "拆解独立游戏产品、Steam 页面、Demo 节奏与社区反馈。",
-    tags: ["独立游戏", "产品观察"],
-    status: "启用",
-    createdAt: "2026-06-21",
-  },
-];
+const offlineSourcesKey = "intel-hub-offline-sources-v2";
+const fallbackSources = originalSources as SourceAccount[];
 
 const fallbackItems: IntelItem[] = [
   {
@@ -550,7 +523,10 @@ function AdminPage({
                 <div>
                   <h3>{source.name}</h3>
                   <p>{source.description || "暂无简介"}</p>
-                  <small>{source.wechatId} · {source.tags.join(" / ")}</small>
+                  <small>
+                    {source.wechatId} · {source.tags.join(" / ")}
+                    {source.originalCount ? ` · 原站 ${source.originalCount} 篇` : ""}
+                  </small>
                 </div>
                 <span className={source.status === "启用" ? "status on" : "status"}>{source.status}</span>
               </section>

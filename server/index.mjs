@@ -1,44 +1,18 @@
 import express from "express";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
+const originalSources = JSON.parse(readFileSync(path.join(rootDir, "src", "data", "originalSources.json"), "utf8"));
 const dataDir = process.env.DATA_DIR || path.join(rootDir, "data");
 const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
 
 const seedData = {
-  sources: [
-    {
-      id: "gamelook",
-      name: "GameLook",
-      wechatId: "GameLook",
-      description: "行业大盘、新游、厂商动态与商业化观察。",
-      tags: ["发行", "行业大盘", "AI与游戏"],
-      status: "启用",
-      createdAt: "2026-06-18",
-    },
-    {
-      id: "game-ai-watch",
-      name: "游戏AI观察",
-      wechatId: "game-ai-watch",
-      description: "跟踪 AI 工具、玩法生成、智能 NPC 与研发效率。",
-      tags: ["AI与游戏", "AI工具", "研发"],
-      status: "启用",
-      createdAt: "2026-06-24",
-    },
-    {
-      id: "indie-product-lab",
-      name: "独游产品实验室",
-      wechatId: "indie-product-lab",
-      description: "拆解独立游戏产品、Steam 页面、Demo 节奏与社区反馈。",
-      tags: ["独立游戏", "产品观察"],
-      status: "启用",
-      createdAt: "2026-06-21",
-    },
-  ],
+  sources: originalSources,
   items: [
     {
       id: "6065",
@@ -95,6 +69,17 @@ async function ensureDataFile() {
   await mkdir(dataDir, { recursive: true });
   try {
     await stat(dataFile);
+    const current = JSON.parse(await readFile(dataFile, "utf8"));
+    const placeholderNames = new Set(["游戏AI观察", "独游产品实验室"]);
+    const currentSources = Array.isArray(current.sources)
+      ? current.sources.filter((source) => !placeholderNames.has(source.name))
+      : [];
+    const existingNames = new Set(currentSources.map((source) => source.name));
+    const missingSources = originalSources.filter((source) => !existingNames.has(source.name));
+    if (missingSources.length > 0 || currentSources.length !== current.sources?.length) {
+      current.sources = [...missingSources, ...currentSources];
+      await writeFile(dataFile, JSON.stringify(current, null, 2), "utf8");
+    }
   } catch {
     await writeFile(dataFile, JSON.stringify(seedData, null, 2), "utf8");
   }

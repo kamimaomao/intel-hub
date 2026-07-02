@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const validProviders = new Set(["manual", "feed", "json", "wechat", "newrank"]);
+const validProviders = new Set(["manual", "feed", "json", "xianjian", "wechat", "newrank"]);
 
 export function text(value) {
   return String(value || "")

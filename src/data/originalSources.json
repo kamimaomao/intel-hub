@@ -520,6 +520,19 @@
     "originalCount": 7
   },
   {
+    "id": "source-xianjian-public",
+    "sourceType": "公众号",
+    "name": "游戏研究所pro公开索引",
+    "wechatId": "xianjian-public",
+    "provider": "xianjian",
+    "externalId": "xianjian-public",
+    "feedUrl": "https://ai.xianjianwendao.com/kb/sitemap.xml",
+    "description": "从公开 sitemap 与详情页导入文章摘要，不使用私有 API。",
+    "tags": ["AI与游戏", "公众号"],
+    "status": "启用",
+    "createdAt": "2026-07-02"
+  },
+  {
     "id": "video-xinyouguancha",
     "sourceType": "视频号",
     "name": "新游观察",

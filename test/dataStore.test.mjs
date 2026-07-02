@@ -61,6 +61,18 @@ test("normalizeSource stores provider fields for self-owned connectors", () => {
   assert.deepEqual(source.tags, ["视频号", "买量素材"]);
 });
 
+test("normalizeSource keeps the public Xianjian sitemap provider", () => {
+  const source = normalizeSource({
+    name: "游戏研究所pro公开索引",
+    wechatId: "xianjian-public",
+    provider: "xianjian",
+    feedUrl: "https://ai.xianjianwendao.com/kb/sitemap.xml",
+  });
+
+  assert.equal(source.provider, "xianjian");
+  assert.equal(source.feedUrl, "https://ai.xianjianwendao.com/kb/sitemap.xml");
+});
+
 test("upsertItems merges imported items by id and keeps newest first", () => {
   const next = upsertItems(baseItems, [
     { ...baseItems[0], title: "AI 关卡生成更新版", date: "2026-07-03 10:00" },

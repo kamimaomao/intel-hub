@@ -26,7 +26,7 @@ import originalSources from "./data/originalSources.json";
 
 type ViewMode = "double" | "single" | "compact";
 type PageMode = "items" | "admin";
-type SourceProvider = "manual" | "feed" | "json" | "wechat" | "newrank";
+type SourceProvider = "manual" | "feed" | "json" | "xianjian" | "wechat" | "newrank";
 
 type SourceAccount = {
   id: string;
@@ -556,6 +556,7 @@ function SourceForm({
           <option value="manual">手动导入</option>
           <option value="feed">RSS / Atom</option>
           <option value="json">JSON API</option>
+          <option value="xianjian">原站公开索引</option>
           <option value="wechat">微信采集</option>
           <option value="newrank">新榜 / 新视</option>
         </select>
@@ -640,7 +641,7 @@ function AdminPage({
             <Settings size={18} />
             <div>
               <h2>添加来源</h2>
-              <p>来源保存到本地库。feed/json 可直接同步；微信和新榜需要可用账号或接口权限。</p>
+              <p>来源保存到本地库。feed/json/公开索引可直接同步；微信和新榜需要可用账号或接口权限。</p>
             </div>
           </div>
           <SourceForm draft={draft} error={error} saving={saving} onDraftChange={onDraftChange} onSubmit={onSubmit} />

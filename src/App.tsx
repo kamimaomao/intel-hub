@@ -41,6 +41,12 @@ type IntelItem = {
   date: string;
   signals: string[];
   originalUrl: string;
+  detailUrl?: string;
+  summaryHtml?: string;
+};
+
+type IntelDetail = Omit<IntelItem, "signals" | "tag"> & {
+  contentHtml: string;
 };
 
 type SourceDraft = {
@@ -62,57 +68,7 @@ const emptyDraft: SourceDraft = {
 const apiBase = import.meta.env.VITE_API_BASE?.replace(/\/$/, "") || "";
 const offlineSourcesKey = "intel-hub-offline-sources-v2";
 const fallbackSources = originalSources as SourceAccount[];
-
-const fallbackItems: IntelItem[] = [
-  {
-    id: "6065",
-    title: "开源游戏引擎开始收紧 AI 代码贡献",
-    summary: "维护者更关注代码可审计性、长期稳定性和协作成本，AI 生成代码从效率工具变成治理议题。",
-    source: "GameLook",
-    kind: "公众号",
-    tag: "AI与游戏",
-    tags: ["研发", "AI工具", "平台政策"],
-    date: "2026-07-01 23:58",
-    signals: ["开源治理", "AI 低质代码", "工具链边界"],
-    originalUrl: "#",
-  },
-  {
-    id: "6001",
-    title: "智能 NPC 原型更适合先落在支线与陪伴系统",
-    summary: "当前大模型延迟、成本与可控性仍限制主线叙事，轻量陪伴、日常反馈和玩家日志是更稳的产品落点。",
-    source: "游戏AI观察",
-    kind: "公众号",
-    tag: "AI与游戏",
-    tags: ["AI工具", "研发", "叙事设计"],
-    date: "2026-06-30 10:20",
-    signals: ["低风险场景", "陪伴系统", "可控叙事"],
-    originalUrl: "#",
-  },
-  {
-    id: "6002",
-    title: "AI 生成资产进入中小团队生产管线",
-    summary: "图像、配音、关卡草案生成开始接入预研流程，重点不是替代美术，而是缩短概念验证周期。",
-    source: "游戏AI观察",
-    kind: "公众号",
-    tag: "AI与游戏",
-    tags: ["AI工具", "生产管线"],
-    date: "2026-06-29 09:15",
-    signals: ["预研提速", "资产草案", "团队协作"],
-    originalUrl: "#",
-  },
-  {
-    id: "6003",
-    title: "微信小游戏榜单换血率升高，休闲赛道竞争加剧",
-    summary: "榜单头部产品迭代节奏变快，红包裂变、宠物继承和塔防混搭继续成为常见组合。",
-    source: "GameLook",
-    kind: "公众号",
-    tag: "小游戏",
-    tags: ["小游戏", "榜单数据", "爆款拆解"],
-    date: "2026-06-28 18:40",
-    signals: ["榜单换血", "休闲猛增", "混合玩法"],
-    originalUrl: "#",
-  },
-];
+const fallbackItems: IntelItem[] = [];
 
 const primaryLinks = [
   { label: "📚 全部内容", tag: "全部" },
@@ -183,10 +139,10 @@ function LoginScreen({ onLogin }: { onLogin: (offline?: boolean) => void }) {
       if (result.ok) {
         onLogin();
       } else {
-        setError("请输入账号和密码");
+        setError("原站登录失败");
       }
-    } catch {
-      onLogin(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "登录失败，请检查原站账号密码");
     }
   }
 
@@ -194,7 +150,7 @@ function LoginScreen({ onLogin }: { onLogin: (offline?: boolean) => void }) {
     <main className="login-page">
       <section className="login-card" aria-label="登录">
         <h1>📚 游戏研究所pro</h1>
-        <p>登录后查看全量归档与检索</p>
+        <p>使用原站账号登录后读取真实文章</p>
         <form className="login-form" onSubmit={submit}>
           <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="账号" autoFocus />
           <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="密码" />
@@ -336,14 +292,26 @@ function ItemCard({
   compact,
   summaryOpen,
   summarySize,
+  onOpen,
 }: {
   item: IntelItem;
   compact: boolean;
   summaryOpen: boolean;
   summarySize: number;
+  onOpen: (id: string) => void;
 }) {
   return (
-    <article className={compact ? "item-card compact" : "item-card"}>
+    <article
+      className={compact ? "item-card compact" : "item-card"}
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(item.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          onOpen(item.id);
+        }
+      }}
+    >
       <div className="item-meta">
         <span>{item.kind}</span>
         <strong>{item.source}</strong>
@@ -354,7 +322,11 @@ function ItemCard({
         </button>
       </div>
       <h2>{item.title}</h2>
-      {summaryOpen && <p style={{ fontSize: summarySize }}>{item.summary}</p>}
+      {summaryOpen && item.summaryHtml ? (
+        <div className="summary-html" style={{ fontSize: summarySize }} dangerouslySetInnerHTML={{ __html: item.summaryHtml }} />
+      ) : (
+        summaryOpen && <p style={{ fontSize: summarySize }}>{item.summary}</p>
+      )}
       {!compact && (
         <div className="signals">
           {item.signals.map((signal) => (
@@ -366,7 +338,7 @@ function ItemCard({
         {item.tags.map((tag) => (
           <span key={tag}>{tag}</span>
         ))}
-        <a href={item.originalUrl} onClick={(event) => event.preventDefault()}>
+        <a href={item.originalUrl} target="_blank" rel="noopener noreferrer nofollow" onClick={(event) => event.stopPropagation()}>
           查看原文 <ExternalLink size={13} />
         </a>
       </div>
@@ -379,9 +351,11 @@ function ItemsPage({
   items,
   total,
   loading,
+  error,
   viewMode,
   summaryOpen,
   summarySize,
+  onItemOpen,
   onViewModeChange,
   onSummaryToggle,
 }: {
@@ -389,9 +363,11 @@ function ItemsPage({
   items: IntelItem[];
   total: number;
   loading: boolean;
+  error: string;
   viewMode: ViewMode;
   summaryOpen: boolean;
   summarySize: number;
+  onItemOpen: (id: string) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onSummaryToggle: () => void;
 }) {
@@ -408,17 +384,92 @@ function ItemsPage({
         <ViewControls mode={viewMode} summaryOpen={summaryOpen} onModeChange={onViewModeChange} onSummaryToggle={onSummaryToggle} />
       </div>
 
-      {loading ? (
+      {error ? (
+        <div className="empty-state">{error}</div>
+      ) : loading ? (
         <div className="empty-state">加载中...</div>
       ) : items.length === 0 ? (
-        <div className="empty-state">没有匹配的情报</div>
+        <div className="empty-state">没有真实文章数据。请确认后端已部署，并且原站账号可登录。</div>
       ) : (
         <div className={gridClass}>
           {items.map((item) => (
-            <ItemCard key={item.id} item={item} compact={viewMode === "compact"} summaryOpen={summaryOpen} summarySize={summarySize} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              compact={viewMode === "compact"}
+              summaryOpen={summaryOpen}
+              summarySize={summarySize}
+              onOpen={onItemOpen}
+            />
           ))}
         </div>
       )}
+    </main>
+  );
+}
+
+function DetailPage({ itemId, onBack }: { itemId: string; onBack: () => void }) {
+  const [item, setItem] = useState<IntelDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    api<{ item: IntelDetail }>(`/api/item/${itemId}`)
+      .then((result) => {
+        if (!cancelled) {
+          setItem(result.item);
+        }
+      })
+      .catch((nextError) => {
+        if (!cancelled) {
+          setError(nextError instanceof Error ? nextError.message : "文章加载失败");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [itemId]);
+
+  return (
+    <main className="main-panel detail-panel">
+      <button className="back-button" type="button" onClick={onBack}>
+        ← 返回
+      </button>
+      {loading ? (
+        <div className="empty-state">加载文章中...</div>
+      ) : error ? (
+        <div className="empty-state">{error}</div>
+      ) : item ? (
+        <article className="article-card">
+          <div className="item-meta article-meta">
+            <span>{item.kind}</span>
+            <strong>{item.source}</strong>
+            <span>·</span>
+            <time dateTime={item.date}>{item.date}</time>
+          </div>
+          <h1>{item.title}</h1>
+          {item.summaryHtml && <div className="article-summary" dangerouslySetInnerHTML={{ __html: item.summaryHtml }} />}
+          <div className="tag-row detail-tags">
+            {item.tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+            {item.originalUrl && (
+              <a href={item.originalUrl} target="_blank" rel="noopener noreferrer nofollow">
+                查看微信原文 <ExternalLink size={13} />
+              </a>
+            )}
+          </div>
+          <div className="article-html" dangerouslySetInnerHTML={{ __html: item.contentHtml }} />
+        </article>
+      ) : null}
     </main>
   );
 }
@@ -547,7 +598,9 @@ export default function App() {
   const [items, setItems] = useState<IntelItem[]>([]);
   const [total, setTotal] = useState(0);
   const [sources, setSources] = useState<SourceAccount[]>([]);
+  const [selectedItemId, setSelectedItemId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("double");
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [summarySize, setSummarySize] = useState(15);
@@ -557,7 +610,8 @@ export default function App() {
 
   const itemUrl = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("tag", ["收藏", "建议", "日志", "微信群"].includes(activeTag) ? "全部" : activeTag);
+    const passthroughTags = ["收藏", "建议", "日志", "微信群", "玩法 / 主题", "按公众号"];
+    params.set("tag", passthroughTags.includes(activeTag) ? "全部" : activeTag);
     if (query.trim()) {
       params.set("q", query.trim());
     }
@@ -568,6 +622,7 @@ export default function App() {
     let cancelled = false;
     async function load() {
       setLoading(true);
+      setLoadError("");
       try {
         const [{ items: nextItems, total: nextTotal }, { sources: nextSources }] = offline
           ? [
@@ -589,12 +644,12 @@ export default function App() {
         }
       }
     }
-    load().catch(() => {
+    load().catch((error) => {
       if (!cancelled) {
-        setOffline(true);
-        setItems(filterItems(fallbackItems, activeTag, query));
-        setTotal(fallbackItems.length);
+        setItems([]);
+        setTotal(0);
         setSources(loadOfflineSources());
+        setLoadError(error instanceof Error ? error.message : "没有连上真实数据后端。请部署 Node 服务，并使用原站账号登录。");
         setLoading(false);
       }
     });
@@ -655,21 +710,31 @@ export default function App() {
         query={query}
         sources={sources}
         summarySize={summarySize}
-        onTagChange={setActiveTag}
-        onPageModeChange={setPageMode}
+        onTagChange={(tag) => {
+          setSelectedItemId("");
+          setActiveTag(tag);
+        }}
+        onPageModeChange={(mode) => {
+          setSelectedItemId("");
+          setPageMode(mode);
+        }}
         onQueryChange={setQuery}
         onSummarySizeChange={setSummarySize}
         onLogout={() => setLoggedIn(false)}
       />
-      {pageMode === "items" ? (
+      {selectedItemId ? (
+        <DetailPage itemId={selectedItemId} onBack={() => setSelectedItemId("")} />
+      ) : pageMode === "items" ? (
         <ItemsPage
           activeTag={activeTag}
           items={items}
           total={total}
           loading={loading}
+          error={loadError}
           viewMode={viewMode}
           summaryOpen={summaryOpen}
           summarySize={summarySize}
+          onItemOpen={setSelectedItemId}
           onViewModeChange={setViewMode}
           onSummaryToggle={() => setSummaryOpen((current) => !current)}
         />

@@ -1,14 +1,26 @@
 # 游戏研究所pro 情报平台
 
-一个游戏行业情报平台原型，包含登录页、左侧导航、情报库、标签筛选、搜索、视图切换、摘要字号控制，以及后台添加公众号功能。
+一个游戏行业情报平台，包含登录页、左侧导航、真实情报列表、文章详情、标签筛选、搜索、视图切换、摘要字号控制，以及后台添加公众号功能。
 
-当前实现包含一个 Node/Express 后端，公众号源会通过 `/api/sources` 写入服务端数据文件。
+当前实现包含一个 Node/Express 后端：
+
+- `/api/login` 登录原站并维护服务端 Cookie。
+- `/api/items` 从原站实时读取真实文章列表。
+- `/api/item/:id` 从原站读取真实文章详情和微信原文链接。
+- `/api/sources` 管理本地公众号源。
 
 ## 本地运行
 
 ```bash
 npm install
 npm run dev
+```
+
+登录页使用原站账号密码。也可以在服务端环境变量里配置：
+
+```bash
+XIANJIAN_USERNAME=你的账号
+XIANJIAN_PASSWORD=你的密码
 ```
 
 开发模式会同时启动：
@@ -27,10 +39,13 @@ npm start
 
 ## 帽子云部署
 
-帽子云目前适合部署前端静态产物：
+真实文章功能必须运行 Node 后端。不要只创建“静态网站”，否则无法登录原站、无法读取真实文章。
 
 - 安装命令：`npm install`
 - 构建命令：`npm run build`
-- 构建产物目录：`dist`
+- 启动命令：`npm start`
+- Node.js：20.18.1 或更高版本
+- 端口：使用平台注入的 `PORT`
+- 可选环境变量：`XIANJIAN_USERNAME`、`XIANJIAN_PASSWORD`
 
-如果要保留真后端，需要把 `/api/*` 反向代理到一个 Node 服务，或设置环境变量 `VITE_API_BASE=https://你的后端域名` 后重新构建。直接静态部署时，帽子云不会运行 `server/index.mjs`。
+如果平台只能部署静态产物，需要另外部署一个 Node 服务，并设置 `VITE_API_BASE=https://你的后端域名` 后重新构建。

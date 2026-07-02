@@ -327,6 +327,7 @@ button {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
 }
 
 .item-card.compact {
@@ -370,6 +371,19 @@ button {
   line-height: 1.7;
 }
 
+.summary-html {
+  color: #475569;
+  line-height: 1.7;
+}
+
+.summary-html .kb-tg {
+  display: none !important;
+}
+
+.summary-html .kb-body {
+  display: block !important;
+}
+
 .signals,
 .tag-row {
   display: flex;
@@ -399,6 +413,71 @@ button {
   color: #0284c7;
   font-size: 13px;
   text-decoration: none;
+}
+
+.detail-panel {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.back-button {
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.article-card {
+  padding: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.article-meta {
+  margin-bottom: 10px;
+}
+
+.article-card h1 {
+  margin: 0 0 16px;
+  color: #0f172a;
+  font-size: 26px;
+  line-height: 1.35;
+}
+
+.article-summary {
+  margin-bottom: 14px;
+  padding: 12px;
+  border-left: 4px solid #cbd5e1;
+  border-radius: 0 8px 8px 0;
+  background: #f8fafc;
+  color: #475569;
+  line-height: 1.7;
+}
+
+.detail-tags {
+  margin: 12px 0 20px;
+}
+
+.article-html {
+  color: #334155;
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+.article-html p,
+.article-html section {
+  margin: 0 0 16px;
+}
+
+.article-html img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 16px auto;
+  border-radius: 8px;
 }
 
 .empty-state {

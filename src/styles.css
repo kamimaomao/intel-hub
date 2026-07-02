@@ -609,6 +609,12 @@ button {
   background: #f8fafc;
 }
 
+.source-list section > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 .source-list h3 {
   display: flex;
   align-items: center;
@@ -654,6 +660,33 @@ button {
 .status.on {
   background: #dcfce7;
   color: #15803d;
+}
+
+.source-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.source-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.source-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .mobile-bar {

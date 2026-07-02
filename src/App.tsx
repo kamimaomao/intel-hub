@@ -7,6 +7,7 @@ import {
   Megaphone,
   MessageCircle,
   Newspaper,
+  RefreshCw,
   Search,
   Settings,
   SlidersHorizontal,
@@ -25,17 +26,25 @@ import originalSources from "./data/originalSources.json";
 
 type ViewMode = "double" | "single" | "compact";
 type PageMode = "items" | "admin";
+type SourceProvider = "manual" | "feed" | "json" | "wechat" | "newrank";
 
 type SourceAccount = {
   id: string;
   sourceType?: "公众号" | "视频号";
   name: string;
   wechatId: string;
+  provider?: SourceProvider;
+  externalId?: string;
+  feedUrl?: string;
   description: string;
   tags: string[];
   status: "启用" | "停用";
   createdAt: string;
   originalCount?: number;
+  itemCount?: number;
+  lastSyncAt?: string;
+  syncStatus?: "idle" | "success" | "failed";
+  syncMessage?: string;
 };
 
 type IntelItem = {
@@ -59,8 +68,11 @@ type IntelDetail = Omit<IntelItem, "signals" | "tag"> & {
 
 type SourceDraft = {
   sourceType: SourceAccount["sourceType"];
+  provider: SourceProvider;
   name: string;
   wechatId: string;
+  externalId: string;
+  feedUrl: string;
   tags: string;
   description: string;
   status: SourceAccount["status"];
@@ -68,8 +80,11 @@ type SourceDraft = {
 
 const emptyDraft: SourceDraft = {
   sourceType: "公众号",
+  provider: "manual",
   name: "",
   wechatId: "",
+  externalId: "",
+  feedUrl: "",
   tags: "AI与游戏",
   description: "",
   status: "启用",
@@ -243,7 +258,7 @@ function Sidebar({
                 onClick={() => onSelectAuthor(source.name)}
               >
                 <span>{source.name}</span>
-                <strong>{source.originalCount || ""}</strong>
+                <strong>{source.itemCount || ""}</strong>
               </button>
             ))}
           </div>
@@ -266,7 +281,7 @@ function Sidebar({
                   onClick={() => onSelectAuthor(source.name)}
                 >
                   <span>{source.name}</span>
-                  <strong>{source.originalCount || ""}</strong>
+                  <strong>{source.itemCount || ""}</strong>
                 </button>
               ))
             )}
@@ -425,7 +440,7 @@ function ItemsPage({
       ) : loading ? (
         <div className="empty-state">加载中...</div>
       ) : items.length === 0 ? (
-        <div className="empty-state">没有真实文章数据。请确认后端已部署，并且原站账号可登录。</div>
+        <div className="empty-state">没有本地情报数据。请在后台添加来源并同步，或通过接口导入文章。</div>
       ) : (
         <div className={gridClass}>
           {items.map((item) => (
@@ -524,6 +539,7 @@ function SourceForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   const accountLabel = draft.sourceType === "视频号" ? "视频号账号/主页链接" : "微信号";
+  const needsFeedUrl = draft.provider === "feed" || draft.provider === "json";
 
   return (
     <form className="source-form" onSubmit={onSubmit}>
@@ -535,12 +551,30 @@ function SourceForm({
         </select>
       </label>
       <label>
+        <span>数据源</span>
+        <select value={draft.provider} onChange={(event) => onDraftChange({ ...draft, provider: event.target.value as SourceProvider })}>
+          <option value="manual">手动导入</option>
+          <option value="feed">RSS / Atom</option>
+          <option value="json">JSON API</option>
+          <option value="wechat">微信采集</option>
+          <option value="newrank">新榜 / 新视</option>
+        </select>
+      </label>
+      <label>
         <span>{draft.sourceType === "视频号" ? "视频号名称" : "公众号名称"}</span>
         <input value={draft.name} onChange={(event) => onDraftChange({ ...draft, name: event.target.value })} required />
       </label>
       <label>
         <span>{accountLabel}</span>
         <input value={draft.wechatId} onChange={(event) => onDraftChange({ ...draft, wechatId: event.target.value })} required />
+      </label>
+      <label>
+        <span>外部 ID</span>
+        <input value={draft.externalId} onChange={(event) => onDraftChange({ ...draft, externalId: event.target.value })} placeholder="视频号 ID / wxbiz / provider id" />
+      </label>
+      <label className="wide">
+        <span>{needsFeedUrl ? "Feed / API URL" : "Feed / API URL（可选）"}</span>
+        <input value={draft.feedUrl} onChange={(event) => onDraftChange({ ...draft, feedUrl: event.target.value })} placeholder="https://..." required={needsFeedUrl} />
       </label>
       <label>
         <span>标签</span>
@@ -572,16 +606,20 @@ function AdminPage({
   error,
   offline,
   saving,
+  syncingSourceId,
   onDraftChange,
   onSubmit,
+  onSync,
 }: {
   sources: SourceAccount[];
   draft: SourceDraft;
   error: string;
   offline: boolean;
   saving: boolean;
+  syncingSourceId: string;
   onDraftChange: (draft: SourceDraft) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSync: (sourceId: string) => void;
 }) {
   const publicAccountCount = sources.filter((source) => (source.sourceType || "公众号") === "公众号").length;
   const videoAccountCount = sources.filter((source) => source.sourceType === "视频号").length;
@@ -602,7 +640,7 @@ function AdminPage({
             <Settings size={18} />
             <div>
               <h2>添加来源</h2>
-              <p>支持公众号和视频号。视频号先作为来源保存，并尝试按作者查询原站内容。</p>
+              <p>来源保存到本地库。feed/json 可直接同步；微信和新榜需要可用账号或接口权限。</p>
             </div>
           </div>
           <SourceForm draft={draft} error={error} saving={saving} onDraftChange={onDraftChange} onSubmit={onSubmit} />
@@ -613,7 +651,7 @@ function AdminPage({
             <Newspaper size={18} />
             <div>
               <h2>情报源</h2>
-              <p>后续抓取任务可从这里读取启用源。</p>
+              <p>同步成功后的文章会写入本地情报库。</p>
             </div>
           </div>
           <div className="source-list">
@@ -623,11 +661,20 @@ function AdminPage({
                   <h3><span className="source-type">{source.sourceType || "公众号"}</span>{source.name}</h3>
                   <p>{source.description || "暂无简介"}</p>
                   <small>
-                    {source.wechatId} · {source.tags.join(" / ")}
-                    {source.originalCount ? ` · 原站 ${source.originalCount} 篇` : ""}
+                    {(source.provider || "manual").toUpperCase()} · {source.externalId || source.wechatId} · {source.tags.join(" / ")}
+                    {source.itemCount ? ` · 本地 ${source.itemCount} 篇` : ""}
+                    {source.lastSyncAt ? ` · ${source.lastSyncAt.slice(0, 16).replace("T", " ")}` : ""}
                   </small>
+                  {source.feedUrl && <small>{source.feedUrl}</small>}
+                  {source.syncMessage && <small>{source.syncMessage}</small>}
                 </div>
-                <span className={source.status === "启用" ? "status on" : "status"}>{source.status}</span>
+                <div className="source-actions">
+                  <span className={source.status === "启用" ? "status on" : "status"}>{source.status}</span>
+                  <button type="button" onClick={() => onSync(source.id)} disabled={syncingSourceId === source.id}>
+                    <RefreshCw size={14} />
+                    {syncingSourceId === source.id ? "同步中" : "同步"}
+                  </button>
+                </div>
               </section>
             ))}
           </div>
@@ -658,6 +705,7 @@ export default function App() {
   const [draft, setDraft] = useState<SourceDraft>(emptyDraft);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [syncingSourceId, setSyncingSourceId] = useState("");
 
   const itemUrl = useMemo(() => {
     const params = new URLSearchParams();
@@ -714,7 +762,7 @@ export default function App() {
         setItems([]);
         setTotal(0);
         setSources(loadOfflineSources());
-        setLoadError(error instanceof Error ? error.message : "没有连上真实数据后端。请部署 Node 服务，并配置原站账号密码环境变量。");
+        setLoadError(error instanceof Error ? error.message : "没有连上真实数据后端。请部署 Node 服务，并配置自己的数据源。");
         setLoading(false);
       }
     });
@@ -735,6 +783,9 @@ export default function App() {
             name: draft.name.trim(),
             wechatId: draft.wechatId.trim(),
             description: draft.description.trim(),
+            provider: draft.provider,
+            externalId: draft.externalId.trim(),
+            feedUrl: draft.feedUrl.trim(),
             tags: normalizeTags(draft.tags),
             status: draft.status,
             createdAt: new Date().toISOString().slice(0, 10),
@@ -754,6 +805,22 @@ export default function App() {
       setFormError(error instanceof Error ? error.message : "保存失败");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function syncSource(sourceId: string) {
+    setSyncingSourceId(sourceId);
+    setFormError("");
+    try {
+      const result = await api<{ source: SourceAccount; imported: number }>(`/api/sources/${sourceId}/sync`, { method: "POST" });
+      setSources((current) => current.map((source) => (source.id === sourceId ? result.source : source)));
+      const { items: nextItems, total: nextTotal } = await api<{ items: IntelItem[]; total: number }>(itemUrl);
+      setItems(nextItems);
+      setTotal(nextTotal);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "同步失败");
+    } finally {
+      setSyncingSourceId("");
     }
   }
 
@@ -821,7 +888,17 @@ export default function App() {
           onSummaryToggle={() => setSummaryOpen((current) => !current)}
         />
       ) : (
-        <AdminPage sources={sources} draft={draft} error={formError} offline={offline} saving={saving} onDraftChange={setDraft} onSubmit={addSource} />
+        <AdminPage
+          sources={sources}
+          draft={draft}
+          error={formError}
+          offline={offline}
+          saving={saving}
+          syncingSourceId={syncingSourceId}
+          onDraftChange={setDraft}
+          onSubmit={addSource}
+          onSync={syncSource}
+        />
       )}
       <div className="mobile-bar" aria-hidden="true">
         <BookOpen size={16} />

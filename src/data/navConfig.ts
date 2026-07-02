@@ -10,10 +10,10 @@ export const topNavLinks: NavLink[] = [
 ];
 
 export const specialNavLinks = [
-  { label: "❤️ 我的收藏", value: "favorites", message: "我的收藏需要原站收藏接口支持；当前先保留入口，不伪造收藏数据。" },
-  { label: "💡 提建议", value: "feedback", message: "提建议是原站弹窗功能；当前先保留入口，不提交到原站。" },
-  { label: "📣 更新日志", value: "changelog", message: "更新日志是原站独立页面；当前先保留入口，不把它当文章标签查询。" },
-  { label: "💬 加入微信群", value: "group", message: "加入微信群是原站弹窗功能；当前先保留入口，不伪造二维码。" },
+  { label: "❤️ 我的收藏", value: "favorites", message: "收藏功能将接入本地用户数据；当前先保留入口，不伪造收藏数据。" },
+  { label: "💡 提建议", value: "feedback", message: "提建议将接入本地反馈数据；当前先保留入口，不提交到外部站点。" },
+  { label: "📣 更新日志", value: "changelog", message: "更新日志将接入本地发布记录；当前先保留入口，不把它当文章标签查询。" },
+  { label: "💬 加入微信群", value: "group", message: "加入微信群将接入本地配置；当前先保留入口，不伪造二维码。" },
 ];
 
 export const directCategoryLinks: NavLink[] = [

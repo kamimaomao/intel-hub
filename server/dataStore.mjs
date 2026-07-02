@@ -94,7 +94,7 @@ export function normalizeItem(item, source) {
 
 export function filterItems(items, { tag = "全部", q = "", author = "" } = {}) {
   const normalizedQuery = text(q).toLowerCase();
-  const normalizedTag = ["收藏", "建议", "日志", "微信群"].includes(tag) ? "全部" : text(tag || "全部");
+  const normalizedTag = text(tag || "全部");
   const normalizedAuthor = text(author);
 
   return [...items]

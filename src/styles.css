@@ -689,10 +689,6 @@ button {
   opacity: 0.65;
 }
 
-.mobile-bar {
-  display: none;
-}
-
 @media (max-width: 1040px) {
   .app-layout {
     grid-template-columns: 1fr;

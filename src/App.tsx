@@ -14,6 +14,15 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  directCategoryLinks,
+  groupedCategoryLinks,
+  playTypeLinks,
+  specialNavLinks,
+  themeLinks,
+  topNavLinks,
+  type NavLink,
+} from "./data/navConfig";
 import originalSources from "./data/originalSources.json";
 
 type ViewMode = "double" | "single" | "compact";
@@ -69,17 +78,6 @@ const apiBase = import.meta.env.VITE_API_BASE?.replace(/\/$/, "") || "";
 const offlineSourcesKey = "intel-hub-offline-sources-v2";
 const fallbackSources = originalSources as SourceAccount[];
 const fallbackItems: IntelItem[] = [];
-
-const primaryLinks = [
-  { label: "📚 全部内容", tag: "全部" },
-  { label: "❤️ 我的收藏", tag: "收藏" },
-  { label: "💡 提建议", tag: "建议" },
-  { label: "📣 更新日志", tag: "日志" },
-  { label: "💬 加入微信群", tag: "微信群" },
-  { label: "🤖 AI与游戏", tag: "AI与游戏" },
-];
-
-const categoryLinks = ["小游戏", "发行", "研发", "出海", "其他", "玩法 / 主题", "按公众号"];
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBase}${url}`, {
@@ -168,31 +166,59 @@ function LoginScreen({ onLogin }: { onLogin: (offline?: boolean) => void }) {
 
 function Sidebar({
   activeTag,
+  activeAuthor,
+  activeSpecial,
   pageMode,
   query,
   sources,
   summarySize,
-  onTagChange,
+  onSelectTag,
+  onSelectAuthor,
+  onSelectSpecial,
   onPageModeChange,
   onQueryChange,
   onSummarySizeChange,
   onLogout,
 }: {
   activeTag: string;
+  activeAuthor: string;
+  activeSpecial: string;
   pageMode: PageMode;
   query: string;
   sources: SourceAccount[];
   summarySize: number;
-  onTagChange: (tag: string) => void;
+  onSelectTag: (tag: string, label?: string) => void;
+  onSelectAuthor: (author: string) => void;
+  onSelectSpecial: (value: string, label: string, message: string) => void;
   onPageModeChange: (mode: PageMode) => void;
   onQueryChange: (query: string) => void;
   onSummarySizeChange: (size: number) => void;
   onLogout: () => void;
 }) {
+  const authorSources = sources.length > 0 ? sources : fallbackSources;
+
+  function tagActive(value: string) {
+    return pageMode === "items" && !activeAuthor && !activeSpecial && activeTag === value;
+  }
+
+  function renderTagButton(link: NavLink, className = "") {
+    return (
+      <button
+        className={`${className} ${tagActive(link.value) ? "active" : ""}`.trim()}
+        key={link.value}
+        type="button"
+        onClick={() => onSelectTag(link.value, link.label)}
+      >
+        <span>{link.label}</span>
+        <strong>{link.count}</strong>
+      </button>
+    );
+  }
+
   return (
     <aside className="sidebar">
       <div className="brand-row">
-        <button type="button" className="brand-link" onClick={() => onPageModeChange("items")}>
+        <button type="button" className="brand-link" onClick={() => onSelectTag("全部", "全部内容")}>
           📚 游戏行业情报库
         </button>
         <div className="account-links">
@@ -208,35 +234,68 @@ function Sidebar({
       </label>
 
       <nav className="side-nav" aria-label="情报导航">
-        {primaryLinks.map((link) => (
+        {topNavLinks.slice(0, 1).map((link) => renderTagButton(link))}
+        {specialNavLinks.map((link) => (
           <button
-            className={pageMode === "items" && activeTag === link.tag ? "active" : ""}
-            key={link.tag}
+            className={pageMode === "items" && activeSpecial === link.value ? "active" : ""}
+            key={link.value}
             type="button"
-            onClick={() => {
-              onPageModeChange("items");
-              onTagChange(link.tag);
-            }}
+            onClick={() => onSelectSpecial(link.value, link.label.replace(/^[^ ]+ /, ""), link.message)}
           >
             <span>{link.label}</span>
-            <strong>{link.tag === "AI与游戏" ? 268 : link.tag === "全部" ? 4182 : ""}</strong>
+            <strong />
           </button>
         ))}
+        {topNavLinks.slice(1).map((link) => renderTagButton(link))}
+
         <div className="nav-section">分类</div>
-        {categoryLinks.map((label) => (
-          <button
-            className={pageMode === "items" && activeTag === label ? "active" : ""}
-            key={label}
-            type="button"
-            onClick={() => {
-              onPageModeChange("items");
-              onTagChange(label);
-            }}
-          >
-            <span>{label === "按公众号" ? `▸ 📰 ${label}` : `▸ ${label}`}</span>
-            <strong>{label === "按公众号" ? sources.length : ""}</strong>
-          </button>
+        {directCategoryLinks.slice(0, 1).map((link) => renderTagButton(link))}
+        {groupedCategoryLinks.map((group) => (
+          <details className="nav-group" key={group.title} open={group.links.some((link) => tagActive(link.value)) || undefined}>
+            <summary>
+              <span>▸ {group.title}</span>
+              <strong>{group.count}</strong>
+            </summary>
+            <div>
+              {group.links.map((link) => renderTagButton(link, "nav-subrow"))}
+            </div>
+          </details>
         ))}
+        {directCategoryLinks.slice(1).map((link) => renderTagButton(link))}
+
+        <details className="nav-group" open={playTypeLinks.concat(themeLinks).some((link) => tagActive(link.value)) || undefined}>
+          <summary>
+            <span>▸ 🎮 玩法 / 主题</span>
+            <strong>{playTypeLinks.length + themeLinks.length}</strong>
+          </summary>
+          <div className="chip-section">
+            <p>玩法品类</p>
+            <div className="chip-grid">{playTypeLinks.map((link) => renderTagButton(link, "tag-chip"))}</div>
+            <p>主题</p>
+            <div className="chip-grid">{themeLinks.map((link) => renderTagButton(link, "tag-chip"))}</div>
+          </div>
+        </details>
+
+        <details className="nav-group" open={Boolean(activeAuthor) || undefined}>
+          <summary>
+            <span>▸ 📰 按公众号</span>
+            <strong>{authorSources.length}</strong>
+          </summary>
+          <div>
+            {authorSources.map((source) => (
+              <button
+                className={`nav-subrow ${activeAuthor === source.name ? "active" : ""}`.trim()}
+                key={source.id}
+                type="button"
+                onClick={() => onSelectAuthor(source.name)}
+              >
+                <span>{source.name}</span>
+                <strong>{source.originalCount || ""}</strong>
+              </button>
+            ))}
+          </div>
+        </details>
+
         <button className={pageMode === "admin" ? "active" : ""} type="button" onClick={() => onPageModeChange("admin")}>
           <span>⚙ 后台管理</span>
           <strong>源</strong>
@@ -594,6 +653,10 @@ export default function App() {
   const [offline, setOffline] = useState(false);
   const [pageMode, setPageMode] = useState<PageMode>("items");
   const [activeTag, setActiveTag] = useState("AI与游戏");
+  const [activeTitle, setActiveTitle] = useState("AI与游戏");
+  const [activeAuthor, setActiveAuthor] = useState("");
+  const [activeSpecial, setActiveSpecial] = useState("");
+  const [specialMessage, setSpecialMessage] = useState("");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<IntelItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -610,13 +673,16 @@ export default function App() {
 
   const itemUrl = useMemo(() => {
     const params = new URLSearchParams();
-    const passthroughTags = ["收藏", "建议", "日志", "微信群", "玩法 / 主题", "按公众号"];
-    params.set("tag", passthroughTags.includes(activeTag) ? "全部" : activeTag);
+    if (activeAuthor) {
+      params.set("author", activeAuthor);
+    } else {
+      params.set("tag", activeTag);
+    }
     if (query.trim()) {
       params.set("q", query.trim());
     }
     return `/api/items?${params.toString()}`;
-  }, [activeTag, query]);
+  }, [activeAuthor, activeTag, query]);
 
   useEffect(() => {
     let cancelled = false;
@@ -624,6 +690,17 @@ export default function App() {
       setLoading(true);
       setLoadError("");
       try {
+        if (specialMessage) {
+          const { sources: nextSources } = offline ? { sources: loadOfflineSources() } : await api<{ sources: SourceAccount[] }>("/api/sources");
+          if (!cancelled) {
+            setItems([]);
+            setTotal(0);
+            setSources(nextSources);
+            setLoadError(specialMessage);
+          }
+          return;
+        }
+
         const [{ items: nextItems, total: nextTotal }, { sources: nextSources }] = offline
           ? [
               { items: filterItems(fallbackItems, activeTag, query), total: fallbackItems.length },
@@ -656,7 +733,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [activeTag, itemUrl, offline, query]);
+  }, [activeTag, itemUrl, offline, query, specialMessage]);
 
   async function addSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -706,16 +783,44 @@ export default function App() {
     <div className="app-layout">
       <Sidebar
         activeTag={activeTag}
+        activeAuthor={activeAuthor}
+        activeSpecial={activeSpecial}
         pageMode={pageMode}
         query={query}
         sources={sources}
         summarySize={summarySize}
-        onTagChange={(tag) => {
+        onSelectTag={(tag, label = tag) => {
           setSelectedItemId("");
+          setPageMode("items");
+          setActiveAuthor("");
+          setActiveSpecial("");
+          setSpecialMessage("");
           setActiveTag(tag);
+          setActiveTitle(label === "全部" ? "全部内容" : label.replace(/^[^\p{Script=Han}A-Za-z0-9]+\s*/u, ""));
+        }}
+        onSelectAuthor={(author) => {
+          setSelectedItemId("");
+          setPageMode("items");
+          setActiveTag("全部");
+          setActiveTitle(author);
+          setActiveAuthor(author);
+          setActiveSpecial("");
+          setSpecialMessage("");
+        }}
+        onSelectSpecial={(value, label, message) => {
+          setSelectedItemId("");
+          setPageMode("items");
+          setActiveTag("全部");
+          setActiveTitle(label);
+          setActiveAuthor("");
+          setActiveSpecial(value);
+          setSpecialMessage(message);
         }}
         onPageModeChange={(mode) => {
           setSelectedItemId("");
+          setActiveAuthor("");
+          setActiveSpecial("");
+          setSpecialMessage("");
           setPageMode(mode);
         }}
         onQueryChange={setQuery}
@@ -726,7 +831,7 @@ export default function App() {
         <DetailPage itemId={selectedItemId} onBack={() => setSelectedItemId("")} />
       ) : pageMode === "items" ? (
         <ItemsPage
-          activeTag={activeTag}
+          activeTag={activeTitle}
           items={items}
           total={total}
           loading={loading}

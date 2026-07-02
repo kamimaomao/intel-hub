@@ -9,13 +9,6 @@ export const topNavLinks: NavLink[] = [
   { label: "🤖 AI与游戏", value: "AI与游戏", count: 268 },
 ];
 
-export const specialNavLinks = [
-  { label: "❤️ 我的收藏", value: "favorites", message: "收藏功能将接入本地用户数据；当前先保留入口，不伪造收藏数据。" },
-  { label: "💡 提建议", value: "feedback", message: "提建议将接入本地反馈数据；当前先保留入口，不提交到外部站点。" },
-  { label: "📣 更新日志", value: "changelog", message: "更新日志将接入本地发布记录；当前先保留入口，不把它当文章标签查询。" },
-  { label: "💬 加入微信群", value: "group", message: "加入微信群将接入本地配置；当前先保留入口，不伪造二维码。" },
-];
-
 export const directCategoryLinks: NavLink[] = [
   { label: "小游戏", value: "小游戏", count: 493 },
   { label: "其他", value: "其他", count: 269 },

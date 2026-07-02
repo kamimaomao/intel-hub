@@ -1,11 +1,8 @@
 import {
-  BookOpen,
   ChevronDown,
   CirclePlus,
   ExternalLink,
   Heart,
-  Megaphone,
-  MessageCircle,
   Newspaper,
   RefreshCw,
   Search,
@@ -17,7 +14,6 @@ import {
   directCategoryLinks,
   groupedCategoryLinks,
   playTypeLinks,
-  specialNavLinks,
   themeLinks,
   topNavLinks,
   type NavLink,
@@ -129,9 +125,8 @@ function loadOfflineSources() {
 
 function filterItems(items: IntelItem[], tag: string, query: string) {
   const normalizedQuery = query.trim().toLowerCase();
-  const normalizedTag = ["收藏", "建议", "日志", "微信群"].includes(tag) ? "全部" : tag;
   return items.filter((item) => {
-    const matchesTag = normalizedTag === "全部" || item.tag === normalizedTag || item.tags.includes(normalizedTag);
+    const matchesTag = tag === "全部" || item.tag === tag || item.tags.includes(tag);
     const searchable = `${item.title} ${item.summary} ${item.source} ${item.tag} ${item.tags.join(" ")}`.toLowerCase();
     return matchesTag && (!normalizedQuery || searchable.includes(normalizedQuery));
   });
@@ -140,28 +135,24 @@ function filterItems(items: IntelItem[], tag: string, query: string) {
 function Sidebar({
   activeTag,
   activeAuthor,
-  activeSpecial,
   pageMode,
   query,
   sources,
   summarySize,
   onSelectTag,
   onSelectAuthor,
-  onSelectSpecial,
   onPageModeChange,
   onQueryChange,
   onSummarySizeChange,
 }: {
   activeTag: string;
   activeAuthor: string;
-  activeSpecial: string;
   pageMode: PageMode;
   query: string;
   sources: SourceAccount[];
   summarySize: number;
   onSelectTag: (tag: string, label?: string) => void;
   onSelectAuthor: (author: string) => void;
-  onSelectSpecial: (value: string, label: string, message: string) => void;
   onPageModeChange: (mode: PageMode) => void;
   onQueryChange: (query: string) => void;
   onSummarySizeChange: (size: number) => void;
@@ -171,7 +162,7 @@ function Sidebar({
   const videoSources = availableSources.filter((source) => source.sourceType === "视频号");
 
   function tagActive(value: string) {
-    return pageMode === "items" && !activeAuthor && !activeSpecial && activeTag === value;
+    return pageMode === "items" && !activeAuthor && activeTag === value;
   }
 
   function renderTagButton(link: NavLink, className = "") {
@@ -203,17 +194,6 @@ function Sidebar({
 
       <nav className="side-nav" aria-label="情报导航">
         {topNavLinks.slice(0, 1).map((link) => renderTagButton(link))}
-        {specialNavLinks.map((link) => (
-          <button
-            className={pageMode === "items" && activeSpecial === link.value ? "active" : ""}
-            key={link.value}
-            type="button"
-            onClick={() => onSelectSpecial(link.value, link.label.replace(/^[^ ]+ /, ""), link.message)}
-          >
-            <span>{link.label}</span>
-            <strong />
-          </button>
-        ))}
         {topNavLinks.slice(1).map((link) => renderTagButton(link))}
 
         <div className="nav-section">分类</div>
@@ -691,8 +671,6 @@ export default function App() {
   const [activeTag, setActiveTag] = useState("AI与游戏");
   const [activeTitle, setActiveTitle] = useState("AI与游戏");
   const [activeAuthor, setActiveAuthor] = useState("");
-  const [activeSpecial, setActiveSpecial] = useState("");
-  const [specialMessage, setSpecialMessage] = useState("");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<IntelItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -727,17 +705,6 @@ export default function App() {
       setLoading(true);
       setLoadError("");
       try {
-        if (specialMessage) {
-          const { sources: nextSources } = offline ? { sources: loadOfflineSources() } : await api<{ sources: SourceAccount[] }>("/api/sources");
-          if (!cancelled) {
-            setItems([]);
-            setTotal(0);
-            setSources(nextSources);
-            setLoadError(specialMessage);
-          }
-          return;
-        }
-
         const [{ items: nextItems, total: nextTotal }, { sources: nextSources }] = offline
           ? [
               { items: filterItems(fallbackItems, activeTag, query), total: fallbackItems.length },
@@ -770,7 +737,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [activeTag, itemUrl, offline, query, specialMessage]);
+  }, [activeTag, itemUrl, offline, query]);
 
   async function addSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -830,7 +797,6 @@ export default function App() {
       <Sidebar
         activeTag={activeTag}
         activeAuthor={activeAuthor}
-        activeSpecial={activeSpecial}
         pageMode={pageMode}
         query={query}
         sources={sources}
@@ -839,8 +805,6 @@ export default function App() {
           setSelectedItemId("");
           setPageMode("items");
           setActiveAuthor("");
-          setActiveSpecial("");
-          setSpecialMessage("");
           setActiveTag(tag);
           setActiveTitle(label === "全部" ? "全部内容" : label.replace(/^[^\p{Script=Han}A-Za-z0-9]+\s*/u, ""));
         }}
@@ -850,23 +814,10 @@ export default function App() {
           setActiveTag("全部");
           setActiveTitle(author);
           setActiveAuthor(author);
-          setActiveSpecial("");
-          setSpecialMessage("");
-        }}
-        onSelectSpecial={(value, label, message) => {
-          setSelectedItemId("");
-          setPageMode("items");
-          setActiveTag("全部");
-          setActiveTitle(label);
-          setActiveAuthor("");
-          setActiveSpecial(value);
-          setSpecialMessage(message);
         }}
         onPageModeChange={(mode) => {
           setSelectedItemId("");
           setActiveAuthor("");
-          setActiveSpecial("");
-          setSpecialMessage("");
           setPageMode(mode);
         }}
         onQueryChange={setQuery}
@@ -901,11 +852,6 @@ export default function App() {
           onSync={syncSource}
         />
       )}
-      <div className="mobile-bar" aria-hidden="true">
-        <BookOpen size={16} />
-        <Megaphone size={16} />
-        <MessageCircle size={16} />
-      </div>
     </div>
   );
 }

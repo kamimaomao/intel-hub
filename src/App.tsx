@@ -183,7 +183,11 @@ function Sidebar({
     <aside className="sidebar">
       <div className="brand-row">
         <button type="button" className="brand-link" onClick={() => onSelectTag("全部", "全部内容")}>
-          📚 游戏行业情报库
+          <span className="brand-mark" aria-hidden="true">IH</span>
+          <span>
+            <strong>游戏行业情报库</strong>
+            <small>INTEL MEDIA HUB</small>
+          </span>
         </button>
       </div>
 
@@ -213,7 +217,7 @@ function Sidebar({
 
         <details className="nav-group" open={playTypeLinks.concat(themeLinks).some((link) => tagActive(link.value)) || undefined}>
           <summary>
-            <span>▸ 🎮 玩法 / 主题</span>
+            <span>▸ 玩法 / 主题</span>
             <strong>{playTypeLinks.length + themeLinks.length}</strong>
           </summary>
           <div className="chip-section">
@@ -226,7 +230,7 @@ function Sidebar({
 
         <details className="nav-group" open={Boolean(activeAuthor) || undefined}>
           <summary>
-            <span>▸ 📰 按公众号</span>
+            <span>▸ 按公众号</span>
             <strong>{authorSources.length}</strong>
           </summary>
           <div>
@@ -246,7 +250,7 @@ function Sidebar({
 
         <details className="nav-group" open={videoSources.some((source) => activeAuthor === source.name) || undefined}>
           <summary>
-            <span>▸ 🎬 按视频号</span>
+            <span>▸ 按视频号</span>
             <strong>{videoSources.length}</strong>
           </summary>
           <div>
@@ -269,7 +273,7 @@ function Sidebar({
         </details>
 
         <button className={pageMode === "admin" ? "active" : ""} type="button" onClick={() => onPageModeChange("admin")}>
-          <span>⚙ 后台管理</span>
+          <span>后台管理</span>
           <strong>源</strong>
         </button>
       </nav>
@@ -361,7 +365,7 @@ function ItemCard({
       {!compact && (
         <div className="signals">
           {item.signals.map((signal) => (
-            <span key={signal}>📡 {signal}</span>
+            <span key={signal}>{signal}</span>
           ))}
         </div>
       )}
@@ -404,13 +408,34 @@ function ItemsPage({
 }) {
   const title = activeTag === "全部" ? "全部内容" : activeTag;
   const gridClass = viewMode === "single" ? "item-grid single" : viewMode === "compact" ? "item-grid compact-grid" : "item-grid";
+  const viewLabel = viewMode === "double" ? "双列" : viewMode === "single" ? "单列" : "紧凑";
 
   return (
     <main className="main-panel">
-      <div className="page-head">
-        <div className="title-row">
+      <div className="campaign-head">
+        <div className="campaign-copy">
+          <p>MEDIA INTEL / GAME BUSINESS</p>
           <h1>{title}</h1>
-          <span>{total} 篇</span>
+          <span>用真实来源追踪游戏行业、AI 应用、发行投放与内容信号。</span>
+          <div className="campaign-metrics" aria-label="当前视图数据">
+            <strong>{total}<span>篇文章</span></strong>
+            <strong>{viewLabel}<span>视图</span></strong>
+            <strong>{summaryOpen ? "ON" : "OFF"}<span>摘要</span></strong>
+          </div>
+        </div>
+        <div className="campaign-visual" aria-hidden="true">
+          <span className="bolt-mark">I</span>
+          <span className="orbit-label label-media">MEDIA</span>
+          <span className="orbit-label label-data">DATA</span>
+          <span className="orbit-label label-game">GAME</span>
+          <span className="orbit-label label-feed">FEED</span>
+        </div>
+      </div>
+
+      <div className="page-toolbar">
+        <div>
+          <strong>{title}</strong>
+          <span>{total} 篇真实文章</span>
         </div>
         <ViewControls mode={viewMode} summaryOpen={summaryOpen} onModeChange={onViewModeChange} onSummaryToggle={onSummaryToggle} />
       </div>
@@ -607,10 +632,23 @@ function AdminPage({
 
   return (
     <main className="main-panel admin-panel">
-      <div className="page-head">
-        <div className="title-row">
+      <div className="campaign-head admin-head">
+        <div className="campaign-copy">
+          <p>SOURCE CONTROL / DATA PIPELINE</p>
           <h1>后台管理</h1>
-          <span>{publicAccountCount} 个公众号源 · {videoAccountCount} 个视频号源</span>
+          <span>添加公众号、视频号、RSS、JSON 或公开索引来源，统一同步到本地情报库。</span>
+          <div className="campaign-metrics" aria-label="来源统计">
+            <strong>{publicAccountCount}<span>公众号源</span></strong>
+            <strong>{videoAccountCount}<span>视频号源</span></strong>
+            <strong>{sources.length}<span>总来源</span></strong>
+          </div>
+        </div>
+        <div className="campaign-visual" aria-hidden="true">
+          <span className="bolt-mark">S</span>
+          <span className="orbit-label label-media">WECHAT</span>
+          <span className="orbit-label label-data">RSS</span>
+          <span className="orbit-label label-game">JSON</span>
+          <span className="orbit-label label-feed">SYNC</span>
         </div>
       </div>
       {offline && <div className="offline-banner">当前为静态演示模式，公众号保存在本浏览器；接通后端后会写入服务端。</div>}

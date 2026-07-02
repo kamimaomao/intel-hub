@@ -11,6 +11,8 @@ const originalSources = JSON.parse(readFileSync(path.join(rootDir, "src", "data"
 const dataDir = process.env.DATA_DIR || path.join(rootDir, "data");
 const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
+const appUsername = process.env.APP_USERNAME || "111";
+const appPassword = process.env.APP_PASSWORD || "111";
 
 const seedData = {
   sources: originalSources,
@@ -75,7 +77,8 @@ app.get("/api/health", (_request, response) => {
 app.post("/api/login", async (request, response, next) => {
   try {
     const { username, password } = request.body || {};
-    await loginOrigin(username, password);
+    const isAppLogin = String(username || "").trim() === appUsername && String(password || "") === appPassword;
+    await (isAppLogin ? loginOrigin() : loginOrigin(username, password));
     response.json({ ok: true });
   } catch (error) {
     next(error);

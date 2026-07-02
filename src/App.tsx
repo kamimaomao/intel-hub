@@ -148,7 +148,7 @@ function LoginScreen({ onLogin }: { onLogin: (offline?: boolean) => void }) {
     <main className="login-page">
       <section className="login-card" aria-label="登录">
         <h1>📚 游戏研究所pro</h1>
-        <p>使用原站账号登录后读取真实文章</p>
+        <p>使用本站账号登录后读取真实文章</p>
         <form className="login-form" onSubmit={submit}>
           <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="账号" autoFocus />
           <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="密码" />
@@ -158,7 +158,7 @@ function LoginScreen({ onLogin }: { onLogin: (offline?: boolean) => void }) {
           </button>
         </form>
         {error && <div className="form-error">{error}</div>}
-        <p className="login-note">还没账号？<button type="button">注册</button></p>
+        <p className="login-note">默认账号：111 / 111</p>
       </section>
     </main>
   );

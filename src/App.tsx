@@ -58,6 +58,88 @@ const emptyDraft: SourceDraft = {
 };
 
 const apiBase = import.meta.env.VITE_API_BASE?.replace(/\/$/, "") || "";
+const offlineSourcesKey = "intel-hub-offline-sources-v1";
+
+const fallbackSources: SourceAccount[] = [
+  {
+    id: "gamelook",
+    name: "GameLook",
+    wechatId: "GameLook",
+    description: "行业大盘、新游、厂商动态与商业化观察。",
+    tags: ["发行", "行业大盘", "AI与游戏"],
+    status: "启用",
+    createdAt: "2026-06-18",
+  },
+  {
+    id: "game-ai-watch",
+    name: "游戏AI观察",
+    wechatId: "game-ai-watch",
+    description: "跟踪 AI 工具、玩法生成、智能 NPC 与研发效率。",
+    tags: ["AI与游戏", "AI工具", "研发"],
+    status: "启用",
+    createdAt: "2026-06-24",
+  },
+  {
+    id: "indie-product-lab",
+    name: "独游产品实验室",
+    wechatId: "indie-product-lab",
+    description: "拆解独立游戏产品、Steam 页面、Demo 节奏与社区反馈。",
+    tags: ["独立游戏", "产品观察"],
+    status: "启用",
+    createdAt: "2026-06-21",
+  },
+];
+
+const fallbackItems: IntelItem[] = [
+  {
+    id: "6065",
+    title: "开源游戏引擎开始收紧 AI 代码贡献",
+    summary: "维护者更关注代码可审计性、长期稳定性和协作成本，AI 生成代码从效率工具变成治理议题。",
+    source: "GameLook",
+    kind: "公众号",
+    tag: "AI与游戏",
+    tags: ["研发", "AI工具", "平台政策"],
+    date: "2026-07-01 23:58",
+    signals: ["开源治理", "AI 低质代码", "工具链边界"],
+    originalUrl: "#",
+  },
+  {
+    id: "6001",
+    title: "智能 NPC 原型更适合先落在支线与陪伴系统",
+    summary: "当前大模型延迟、成本与可控性仍限制主线叙事，轻量陪伴、日常反馈和玩家日志是更稳的产品落点。",
+    source: "游戏AI观察",
+    kind: "公众号",
+    tag: "AI与游戏",
+    tags: ["AI工具", "研发", "叙事设计"],
+    date: "2026-06-30 10:20",
+    signals: ["低风险场景", "陪伴系统", "可控叙事"],
+    originalUrl: "#",
+  },
+  {
+    id: "6002",
+    title: "AI 生成资产进入中小团队生产管线",
+    summary: "图像、配音、关卡草案生成开始接入预研流程，重点不是替代美术，而是缩短概念验证周期。",
+    source: "游戏AI观察",
+    kind: "公众号",
+    tag: "AI与游戏",
+    tags: ["AI工具", "生产管线"],
+    date: "2026-06-29 09:15",
+    signals: ["预研提速", "资产草案", "团队协作"],
+    originalUrl: "#",
+  },
+  {
+    id: "6003",
+    title: "微信小游戏榜单换血率升高，休闲赛道竞争加剧",
+    summary: "榜单头部产品迭代节奏变快，红包裂变、宠物继承和塔防混搭继续成为常见组合。",
+    source: "GameLook",
+    kind: "公众号",
+    tag: "小游戏",
+    tags: ["小游戏", "榜单数据", "爆款拆解"],
+    date: "2026-06-28 18:40",
+    signals: ["榜单换血", "休闲猛增", "混合玩法"],
+    originalUrl: "#",
+  },
+];
 
 const primaryLinks = [
   { label: "📚 全部内容", tag: "全部" },
@@ -89,7 +171,30 @@ function normalizeTags(value: string) {
     .filter(Boolean);
 }
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
+function loadOfflineSources() {
+  const stored = window.localStorage.getItem(offlineSourcesKey);
+  if (!stored) {
+    return fallbackSources;
+  }
+  try {
+    const parsed = JSON.parse(stored) as SourceAccount[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallbackSources;
+  } catch {
+    return fallbackSources;
+  }
+}
+
+function filterItems(items: IntelItem[], tag: string, query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedTag = ["收藏", "建议", "日志", "微信群"].includes(tag) ? "全部" : tag;
+  return items.filter((item) => {
+    const matchesTag = normalizedTag === "全部" || item.tag === normalizedTag || item.tags.includes(normalizedTag);
+    const searchable = `${item.title} ${item.summary} ${item.source} ${item.tag} ${item.tags.join(" ")}`.toLowerCase();
+    return matchesTag && (!normalizedQuery || searchable.includes(normalizedQuery));
+  });
+}
+
+function LoginScreen({ onLogin }: { onLogin: (offline?: boolean) => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -107,8 +212,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       } else {
         setError("请输入账号和密码");
       }
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "登录失败");
+    } catch {
+      onLogin(true);
     }
   }
 
@@ -396,6 +501,7 @@ function AdminPage({
   sources,
   draft,
   error,
+  offline,
   saving,
   onDraftChange,
   onSubmit,
@@ -403,6 +509,7 @@ function AdminPage({
   sources: SourceAccount[];
   draft: SourceDraft;
   error: string;
+  offline: boolean;
   saving: boolean;
   onDraftChange: (draft: SourceDraft) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -415,6 +522,7 @@ function AdminPage({
           <span>{sources.length} 个公众号源</span>
         </div>
       </div>
+      {offline && <div className="offline-banner">当前为静态演示模式，公众号保存在本浏览器；接通后端后会写入服务端。</div>}
 
       <section className="admin-grid">
         <article className="admin-card">
@@ -456,6 +564,7 @@ function AdminPage({
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [pageMode, setPageMode] = useState<PageMode>("items");
   const [activeTag, setActiveTag] = useState("AI与游戏");
   const [query, setQuery] = useState("");
@@ -484,10 +593,15 @@ export default function App() {
     async function load() {
       setLoading(true);
       try {
-        const [{ items: nextItems, total: nextTotal }, { sources: nextSources }] = await Promise.all([
-          api<{ items: IntelItem[]; total: number }>(itemUrl),
-          api<{ sources: SourceAccount[] }>("/api/sources"),
-        ]);
+        const [{ items: nextItems, total: nextTotal }, { sources: nextSources }] = offline
+          ? [
+              { items: filterItems(fallbackItems, activeTag, query), total: fallbackItems.length },
+              { sources: loadOfflineSources() },
+            ]
+          : await Promise.all([
+              api<{ items: IntelItem[]; total: number }>(itemUrl),
+              api<{ sources: SourceAccount[] }>("/api/sources"),
+            ]);
         if (!cancelled) {
           setItems(nextItems);
           setTotal(nextTotal);
@@ -501,25 +615,43 @@ export default function App() {
     }
     load().catch(() => {
       if (!cancelled) {
-        setItems([]);
+        setOffline(true);
+        setItems(filterItems(fallbackItems, activeTag, query));
+        setTotal(fallbackItems.length);
+        setSources(loadOfflineSources());
         setLoading(false);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [itemUrl]);
+  }, [activeTag, itemUrl, offline, query]);
 
   async function addSource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setFormError("");
     try {
-      const { source } = await api<{ source: SourceAccount }>("/api/sources", {
-        method: "POST",
-        body: JSON.stringify({ ...draft, tags: normalizeTags(draft.tags) }),
-      });
+      const source = offline
+        ? {
+            id: `${draft.wechatId.trim() || draft.name.trim()}-${Date.now()}`,
+            name: draft.name.trim(),
+            wechatId: draft.wechatId.trim(),
+            description: draft.description.trim(),
+            tags: normalizeTags(draft.tags),
+            status: draft.status,
+            createdAt: new Date().toISOString().slice(0, 10),
+          }
+        : (
+            await api<{ source: SourceAccount }>("/api/sources", {
+              method: "POST",
+              body: JSON.stringify({ ...draft, tags: normalizeTags(draft.tags) }),
+            })
+          ).source;
       setSources((current) => [source, ...current]);
+      if (offline) {
+        window.localStorage.setItem(offlineSourcesKey, JSON.stringify([source, ...sources]));
+      }
       setDraft(emptyDraft);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "保存失败");
@@ -529,7 +661,14 @@ export default function App() {
   }
 
   if (!loggedIn) {
-    return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+    return (
+      <LoginScreen
+        onLogin={(nextOffline = false) => {
+          setOffline(nextOffline);
+          setLoggedIn(true);
+        }}
+      />
+    );
   }
 
   return (
@@ -559,7 +698,7 @@ export default function App() {
           onSummaryToggle={() => setSummaryOpen((current) => !current)}
         />
       ) : (
-        <AdminPage sources={sources} draft={draft} error={formError} saving={saving} onDraftChange={setDraft} onSubmit={addSource} />
+        <AdminPage sources={sources} draft={draft} error={formError} offline={offline} saving={saving} onDraftChange={setDraft} onSubmit={addSource} />
       )}
       <div className="mobile-bar" aria-hidden="true">
         <BookOpen size={16} />

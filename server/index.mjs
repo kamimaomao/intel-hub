@@ -1,9 +1,9 @@
 import express from "express";
 import { readFileSync } from "node:fs";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { fetchOriginItem, fetchOriginItems } from "./originClient.mjs";
+import { createDataStore, normalizeTags, slug } from "./dataStore.mjs";
+import { fetchSourceItems } from "./sourceSync.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -11,61 +11,7 @@ const originalSources = JSON.parse(readFileSync(path.join(rootDir, "src", "data"
 const dataDir = process.env.DATA_DIR || path.join(rootDir, "data");
 const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
-
-const seedData = {
-  sources: originalSources,
-  items: [],
-};
-
-async function ensureDataFile() {
-  await mkdir(dataDir, { recursive: true });
-  try {
-    await stat(dataFile);
-    const current = JSON.parse(await readFile(dataFile, "utf8"));
-    const placeholderNames = new Set(["游戏AI观察", "独游产品实验室"]);
-    const currentSources = Array.isArray(current.sources)
-      ? current.sources
-          .filter((source) => !placeholderNames.has(source.name))
-          .map((source) => ({ sourceType: "公众号", ...source }))
-      : [];
-    const existingNames = new Set(currentSources.map((source) => source.name));
-    const missingSources = originalSources.filter((source) => !existingNames.has(source.name));
-    if (missingSources.length > 0 || currentSources.length !== current.sources?.length) {
-      current.sources = [...missingSources, ...currentSources];
-      await writeFile(dataFile, JSON.stringify(current, null, 2), "utf8");
-    }
-  } catch {
-    await writeFile(dataFile, JSON.stringify(seedData, null, 2), "utf8");
-  }
-}
-
-async function readData() {
-  await ensureDataFile();
-  const raw = await readFile(dataFile, "utf8");
-  return JSON.parse(raw);
-}
-
-async function writeData(data) {
-  await writeFile(dataFile, JSON.stringify(data, null, 2), "utf8");
-}
-
-function normalizeTags(value) {
-  if (Array.isArray(value)) {
-    return value.map((tag) => String(tag).trim()).filter(Boolean);
-  }
-  return String(value || "")
-    .split(/[，,]/)
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-function slug(value) {
-  return String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{Script=Han}\w-]+/gu, "-")
-    .replace(/^-+|-+$/g, "");
-}
+const dataStore = createDataStore({ dataFile, seedSources: originalSources });
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -79,7 +25,7 @@ app.get("/api/items", async (request, response, next) => {
     const query = String(request.query.q || "").trim().toLowerCase();
     const tag = String(request.query.tag || "全部");
     const author = String(request.query.author || "").trim();
-    const result = await fetchOriginItems({ tag, q: query, author });
+    const result = await dataStore.listItems({ tag, q: query, author });
     response.json(result);
   } catch (error) {
     next(error);
@@ -88,8 +34,26 @@ app.get("/api/items", async (request, response, next) => {
 
 app.get("/api/item/:id", async (request, response, next) => {
   try {
-    const item = await fetchOriginItem(request.params.id);
+    const item = await dataStore.getItem(request.params.id);
+    if (!item) {
+      response.status(404).json({ error: "文章不存在", code: "ITEM_NOT_FOUND" });
+      return;
+    }
     response.json({ item });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/items", async (request, response, next) => {
+  try {
+    const data = await dataStore.readData();
+    const payloadItems = Array.isArray(request.body?.items) ? request.body.items : [request.body];
+    const sourceId = String(request.body?.sourceId || payloadItems[0]?.sourceId || "").trim();
+    const sourceName = String(request.body?.source || payloadItems[0]?.source || "").trim();
+    const source = data.sources.find((itemSource) => itemSource.id === sourceId || itemSource.name === sourceName);
+    const items = await dataStore.addItems(payloadItems, source);
+    response.status(201).json({ items, imported: items.length });
   } catch (error) {
     next(error);
   }
@@ -97,8 +61,19 @@ app.get("/api/item/:id", async (request, response, next) => {
 
 app.get("/api/sources", async (_request, response, next) => {
   try {
-    const data = await readData();
-    response.json({ sources: data.sources });
+    const data = await dataStore.readData();
+    const counts = new Map();
+    for (const item of data.items) {
+      counts.set(item.source, (counts.get(item.source) || 0) + 1);
+      if (item.sourceId) {
+        counts.set(item.sourceId, (counts.get(item.sourceId) || 0) + 1);
+      }
+    }
+    const sources = data.sources.map((source) => ({
+      ...source,
+      itemCount: counts.get(source.id) || counts.get(source.name) || 0,
+    }));
+    response.json({ sources });
   } catch (error) {
     next(error);
   }
@@ -114,22 +89,49 @@ app.post("/api/sources", async (request, response, next) => {
       return;
     }
 
-    const data = await readData();
-    const source = {
+    const source = await dataStore.addSource({
       id: `${slug(sourceType)}-${slug(wechatId || name)}-${Date.now()}`,
       sourceType,
       name,
       wechatId,
+      provider: request.body?.provider,
+      externalId: request.body?.externalId,
+      feedUrl: request.body?.feedUrl,
       description: String(request.body?.description || "").trim(),
       tags: normalizeTags(request.body?.tags),
       status: request.body?.status === "停用" ? "停用" : "启用",
       createdAt: new Date().toISOString().slice(0, 10),
-    };
-
-    data.sources.unshift(source);
-    await writeData(data);
+    });
     response.status(201).json({ source });
   } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/sources/:id/sync", async (request, response, next) => {
+  const sourceId = request.params.id;
+  try {
+    const data = await dataStore.readData();
+    const source = data.sources.find((itemSource) => itemSource.id === sourceId);
+    if (!source) {
+      response.status(404).json({ error: "来源不存在", code: "SOURCE_NOT_FOUND" });
+      return;
+    }
+
+    const items = await fetchSourceItems(source);
+    await dataStore.addItems(items, source);
+    const updatedSource = await dataStore.updateSource(source.id, {
+      lastSyncAt: new Date().toISOString(),
+      syncStatus: "success",
+      syncMessage: `同步 ${items.length} 条`,
+    });
+    response.json({ source: updatedSource, imported: items.length, items });
+  } catch (error) {
+    await dataStore.updateSource(sourceId, {
+      lastSyncAt: new Date().toISOString(),
+      syncStatus: "failed",
+      syncMessage: error.message || "同步失败",
+    });
     next(error);
   }
 });

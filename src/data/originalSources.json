@@ -13,31 +13,31 @@
     "id": "source-02",
     "name": "高玩看世界",
     "wechatId": "高玩看世界",
-    "description": "种子公众号来源；历史收录参考 256 篇。",
+    "description": "种子公众号来源；历史收录参考 347 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 256
+    "originalCount": 347
   },
   {
     "id": "source-03",
     "name": "游戏葡萄",
     "wechatId": "游戏葡萄",
-    "description": "种子公众号来源；历史收录参考 180 篇。",
+    "description": "种子公众号来源；历史收录参考 253 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 180
+    "originalCount": 253
   },
   {
     "id": "source-04",
     "name": "竞核",
     "wechatId": "竞核",
-    "description": "种子公众号来源；历史收录参考 171 篇。",
+    "description": "种子公众号来源；历史收录参考 248 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 171
+    "originalCount": 248
   },
   {
     "id": "source-05",
@@ -53,81 +53,81 @@
     "id": "source-06",
     "name": "游戏陀螺",
     "wechatId": "游戏陀螺",
-    "description": "种子公众号来源；历史收录参考 159 篇。",
+    "description": "种子公众号来源；历史收录参考 229 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 159
+    "originalCount": 229
   },
   {
     "id": "source-07",
     "name": "GameRes游资网",
     "wechatId": "GameRes游资网",
-    "description": "种子公众号来源；历史收录参考 159 篇。",
+    "description": "种子公众号来源；历史收录参考 166 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 159
+    "originalCount": 166
   },
   {
     "id": "source-08",
     "name": "游戏那点事Gamez",
     "wechatId": "游戏那点事Gamez",
-    "description": "种子公众号来源；历史收录参考 150 篇。",
+    "description": "种子公众号来源；历史收录参考 220 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 150
+    "originalCount": 220
   },
   {
     "id": "source-09",
     "name": "游戏茶馆",
     "wechatId": "游戏茶馆",
-    "description": "种子公众号来源；历史收录参考 145 篇。",
+    "description": "种子公众号来源；历史收录参考 228 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 145
+    "originalCount": 228
   },
   {
     "id": "source-10",
     "name": "AppGrowing出海观察",
     "wechatId": "AppGrowing出海观察",
-    "description": "种子公众号来源；历史收录参考 142 篇。",
+    "description": "种子公众号来源；历史收录参考 143 篇。",
     "tags": ["出海", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 142
+    "originalCount": 143
   },
   {
     "id": "source-11",
     "name": "触乐",
     "wechatId": "触乐",
-    "description": "种子公众号来源；历史收录参考 141 篇。",
+    "description": "种子公众号来源；历史收录参考 208 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 141
+    "originalCount": 208
   },
   {
     "id": "source-12",
     "name": "游戏日报",
     "wechatId": "游戏日报",
-    "description": "种子公众号来源；历史收录参考 133 篇。",
+    "description": "种子公众号来源；历史收录参考 194 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 133
+    "originalCount": 194
   },
   {
     "id": "source-13",
     "name": "橙了个橘",
     "wechatId": "橙了个橘",
-    "description": "种子公众号来源；历史收录参考 129 篇。",
+    "description": "种子公众号来源；历史收录参考 180 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 129
+    "originalCount": 180
   },
   {
     "id": "source-14",
@@ -143,31 +143,31 @@
     "id": "source-15",
     "name": "DataEye游戏观察",
     "wechatId": "DataEye游戏观察",
-    "description": "种子公众号来源；历史收录参考 94 篇。",
+    "description": "种子公众号来源；历史收录参考 105 篇。",
     "tags": ["研发", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 94
+    "originalCount": 105
   },
   {
     "id": "source-16",
     "name": "腾讯游戏学堂",
     "wechatId": "腾讯游戏学堂",
-    "description": "种子公众号来源；历史收录参考 92 篇。",
+    "description": "种子公众号来源；历史收录参考 93 篇。",
     "tags": ["研发", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 92
+    "originalCount": 93
   },
   {
     "id": "source-17",
     "name": "白鲸出海",
     "wechatId": "白鲸出海",
-    "description": "种子公众号来源；历史收录参考 92 篇。",
+    "description": "种子公众号来源；历史收录参考 141 篇。",
     "tags": ["出海", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 92
+    "originalCount": 141
   },
   {
     "id": "source-18",
@@ -183,11 +183,11 @@
     "id": "source-19",
     "name": "游戏客栈x爆款时代",
     "wechatId": "游戏客栈x爆款时代",
-    "description": "种子公众号来源；历史收录参考 82 篇。",
+    "description": "种子公众号来源；历史收录参考 117 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 82
+    "originalCount": 117
   },
   {
     "id": "source-20",
@@ -223,11 +223,11 @@
     "id": "source-23",
     "name": "王董的新游戏",
     "wechatId": "王董的新游戏",
-    "description": "种子公众号来源；历史收录参考 77 篇。",
+    "description": "种子公众号来源；历史收录参考 80 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 77
+    "originalCount": 80
   },
   {
     "id": "source-24",
@@ -243,51 +243,51 @@
     "id": "source-25",
     "name": "广大大出海笔记",
     "wechatId": "广大大出海笔记",
-    "description": "种子公众号来源；历史收录参考 74 篇。",
+    "description": "种子公众号来源；历史收录参考 82 篇。",
     "tags": ["出海", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 74
+    "originalCount": 82
   },
   {
     "id": "source-26",
     "name": "创游信息流",
     "wechatId": "创游信息流",
-    "description": "种子公众号来源；历史收录参考 73 篇。",
+    "description": "种子公众号来源；历史收录参考 104 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 73
+    "originalCount": 104
   },
   {
     "id": "source-27",
     "name": "TapTap服务号",
     "wechatId": "TapTap服务号",
-    "description": "种子公众号来源；历史收录参考 73 篇。",
+    "description": "种子公众号来源；历史收录参考 107 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 73
+    "originalCount": 107
   },
   {
     "id": "source-28",
     "name": "车尔斯基的游戏运营杂谈",
     "wechatId": "车尔斯基的游戏运营杂谈",
-    "description": "种子公众号来源；历史收录参考 61 篇。",
+    "description": "种子公众号来源；历史收录参考 200 篇。",
     "tags": ["研发", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 61
+    "originalCount": 200
   },
   {
     "id": "source-29",
     "name": "急速行走的小U盘",
     "wechatId": "急速行走的小U盘",
-    "description": "种子公众号来源；历史收录参考 54 篇。",
+    "description": "种子公众号来源；历史收录参考 77 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 54
+    "originalCount": 77
   },
   {
     "id": "source-30",
@@ -303,31 +303,31 @@
     "id": "source-31",
     "name": "游戏干线",
     "wechatId": "游戏干线",
-    "description": "种子公众号来源；历史收录参考 38 篇。",
+    "description": "种子公众号来源；历史收录参考 57 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 38
+    "originalCount": 57
   },
   {
     "id": "source-32",
     "name": "点点数据服务号",
     "wechatId": "点点数据服务号",
-    "description": "种子公众号来源；历史收录参考 32 篇。",
+    "description": "种子公众号来源；历史收录参考 47 篇。",
     "tags": ["研发", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 32
+    "originalCount": 47
   },
   {
     "id": "source-33",
     "name": "Joyce游戏运营",
     "wechatId": "Joyce游戏运营",
-    "description": "种子公众号来源；历史收录参考 32 篇。",
+    "description": "种子公众号来源；历史收录参考 60 篇。",
     "tags": ["研发", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 32
+    "originalCount": 60
   },
   {
     "id": "source-34",
@@ -353,11 +353,11 @@
     "id": "source-36",
     "name": "老王独立游戏",
     "wechatId": "老王独立游戏",
-    "description": "种子公众号来源；历史收录参考 24 篇。",
+    "description": "种子公众号来源；历史收录参考 44 篇。",
     "tags": ["研发", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 24
+    "originalCount": 44
   },
   {
     "id": "source-37",
@@ -383,31 +383,41 @@
     "id": "source-39",
     "name": "一枚游戏干饭人",
     "wechatId": "一枚游戏干饭人",
-    "description": "种子公众号来源；历史收录参考 22 篇。",
+    "description": "种子公众号来源；历史收录参考 29 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 22
+    "originalCount": 29
   },
   {
     "id": "source-40",
     "name": "做个小游戏",
     "wechatId": "做个小游戏",
-    "description": "种子公众号来源；历史收录参考 13 篇。",
+    "description": "种子公众号来源；历史收录参考 18 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 13
+    "originalCount": 18
   },
   {
     "id": "source-41",
     "name": "E哥带你去出海",
     "wechatId": "E哥带你去出海",
-    "description": "种子公众号来源；历史收录参考 13 篇。",
+    "description": "种子公众号来源；历史收录参考 20 篇。",
     "tags": ["出海", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 13
+    "originalCount": 20
+  },
+  {
+    "id": "source-53",
+    "name": "曾嵘胡扯的地方",
+    "wechatId": "曾嵘胡扯的地方",
+    "description": "种子公众号来源；历史收录参考 17 篇。",
+    "tags": ["行业情报", "公众号"],
+    "status": "启用",
+    "createdAt": "2026-07-02",
+    "originalCount": 17
   },
   {
     "id": "source-42",
@@ -493,21 +503,21 @@
     "id": "source-50",
     "name": "腾讯营销游戏行业顾问",
     "wechatId": "腾讯营销游戏行业顾问",
-    "description": "种子公众号来源；历史收录参考 7 篇。",
+    "description": "种子公众号来源；历史收录参考 11 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 7
+    "originalCount": 11
   },
   {
     "id": "source-51",
     "name": "游戏Marketing",
     "wechatId": "游戏Marketing",
-    "description": "种子公众号来源；历史收录参考 7 篇。",
+    "description": "种子公众号来源；历史收录参考 8 篇。",
     "tags": ["行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
-    "originalCount": 7
+    "originalCount": 8
   },
   {
     "id": "source-52",

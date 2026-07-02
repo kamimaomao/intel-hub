@@ -518,5 +518,18 @@
     "status": "启用",
     "createdAt": "2026-07-02",
     "originalCount": 7
+  },
+  {
+    "id": "video-xinyouguancha",
+    "sourceType": "视频号",
+    "name": "新游观察",
+    "wechatId": "sphqRMmfwGMaAR0",
+    "provider": "manual",
+    "externalId": "sphqRMmfwGMaAR0",
+    "feedUrl": "",
+    "description": "IP归属地：北京；认证信息：游戏自媒体；主体类型：个人。",
+    "tags": ["视频号", "新游观察", "AI与游戏"],
+    "status": "启用",
+    "createdAt": "2026-07-02"
   }
 ]

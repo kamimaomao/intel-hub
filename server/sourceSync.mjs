@@ -106,6 +106,8 @@ export function parseFeedItems(feedText, source) {
           .map((category) => $(category).text()),
       );
       const originalUrl = text(node.find("link").first().text());
+      const enclosure = node.find("enclosure[type^='video']").first();
+      const mediaContent = node.find("media\\:content[medium='video'], content[medium='video']").first();
       return normalizeItem(
         {
           id: text(node.find("guid").first().text()) || originalUrl,
@@ -116,6 +118,8 @@ export function parseFeedItems(feedText, source) {
           tags,
           tag: tags[0],
           originalUrl,
+          videoUrl: enclosure.attr("url") || mediaContent.attr("url"),
+          coverUrl: node.find("media\\:thumbnail, thumbnail").first().attr("url"),
         },
         source,
       );
@@ -173,6 +177,10 @@ export function parseJsonItems(payload, source) {
         tags: mergeSourceTags(source, normalizeTags(item.tags || item.category)),
         originalUrl: item.originalUrl || item.url || item.link,
         detailUrl: item.detailUrl || item.url || item.link,
+        videoUrl: item.videoUrl || item.video_url || item.video?.url || item.mediaUrl,
+        embedUrl: item.embedUrl || item.embed_url || item.playerUrl,
+        coverUrl: item.coverUrl || item.cover_url || item.poster || item.image,
+        duration: item.duration,
       },
       source,
     ),

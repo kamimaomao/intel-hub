@@ -89,6 +89,10 @@ export function normalizeItem(item, source) {
     summaryHtml: text(item?.summaryHtml),
     contentHtml: text(item?.contentHtml || item?.summaryHtml || item?.summary),
     provider: text(item?.provider || source?.provider || "manual"),
+    videoUrl: text(item?.videoUrl || item?.video_url || item?.video?.url || item?.mediaUrl),
+    embedUrl: text(item?.embedUrl || item?.embed_url || item?.playerUrl),
+    coverUrl: text(item?.coverUrl || item?.cover_url || item?.poster || item?.image),
+    duration: text(item?.duration),
   };
 }
 
@@ -208,6 +212,26 @@ export function createDataStore({ dataFile, seedSources = [] }) {
     async addSource(sourceDraft) {
       const data = await readData();
       const source = normalizeSource(sourceDraft);
+      const index = data.sources.findIndex((item) => {
+        const sameTypeAndName = (item.sourceType || "公众号") === source.sourceType && item.name === source.name;
+        const sameExternalId =
+          source.externalId && (item.externalId === source.externalId || item.wechatId === source.externalId);
+        const sameWechatId = source.wechatId && (item.wechatId === source.wechatId || item.externalId === source.wechatId);
+        return sameTypeAndName || sameExternalId || sameWechatId;
+      });
+      if (index >= 0) {
+        data.sources[index] = normalizeSource({
+          ...data.sources[index],
+          ...sourceDraft,
+          id: data.sources[index].id,
+          createdAt: data.sources[index].createdAt,
+          lastSyncAt: data.sources[index].lastSyncAt,
+          syncStatus: data.sources[index].syncStatus,
+          syncMessage: data.sources[index].syncMessage,
+        });
+        await writeData(data);
+        return data.sources[index];
+      }
       data.sources.unshift(source);
       await writeData(data);
       return source;

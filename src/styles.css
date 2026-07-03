@@ -671,6 +671,18 @@ a:focus-visible {
   color: #8290a5;
 }
 
+.item-meta .video-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .item-card h2 {
   position: relative;
   z-index: 1;
@@ -790,6 +802,36 @@ a:focus-visible {
   color: var(--ink);
   font-size: 30px;
   line-height: 1.35;
+}
+
+.video-player {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 18px;
+  border: 1px solid #d9e3f2;
+  border-radius: 12px;
+  background: #071735;
+}
+
+.video-player video,
+.video-player iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #071735;
+}
+
+.video-player span {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(7, 23, 53, 0.72);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .article-summary {

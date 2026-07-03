@@ -4,6 +4,7 @@ import { normalizeItem, normalizeTags, text } from "./dataStore.mjs";
 const XIANJIAN_SITEMAP_URL = "https://ai.xianjianwendao.com/kb/sitemap.xml";
 const XIANJIAN_IMPORT_LIMIT = Number(process.env.XIANJIAN_IMPORT_LIMIT || 0);
 const XIANJIAN_DETAIL_CONCURRENCY = Math.max(1, Number(process.env.XIANJIAN_DETAIL_CONCURRENCY || 8));
+const XIANJIAN_DETAIL_RETRIES = Math.max(1, Number(process.env.XIANJIAN_DETAIL_RETRIES || 3));
 
 function unique(values) {
   return [...new Set(values.map((value) => text(value)).filter(Boolean))];
@@ -28,6 +29,10 @@ function providerError(message, status = 422, code = "PROVIDER_NOT_CONFIGURED") 
   return error;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function mapWithConcurrency(values, concurrency, mapper) {
   const results = new Array(values.length);
   let nextIndex = 0;
@@ -42,6 +47,11 @@ async function mapWithConcurrency(values, concurrency, mapper) {
     }),
   );
   return results;
+}
+
+function retryAfterMs(response, fallbackMs) {
+  const retryAfter = Number(response.headers.get("retry-after"));
+  return Number.isFinite(retryAfter) ? Math.max(0, retryAfter * 1000) : fallbackMs;
 }
 
 function mergeSourceTags(source, tags) {
@@ -215,7 +225,31 @@ export function parseXianjianDetail(html, source, detailUrl) {
   );
 }
 
-export async function fetchSourceItems(source) {
+async function fetchXianjianDetail(detailUrl, source) {
+  for (let attempt = 1; attempt <= XIANJIAN_DETAIL_RETRIES; attempt += 1) {
+    try {
+      const detailResponse = await fetch(detailUrl, {
+        headers: { "User-Agent": "IntelHub/0.1 (+https://intel-hub-production-9449.up.railway.app)" },
+      });
+      if (detailResponse.status === 429 && attempt < XIANJIAN_DETAIL_RETRIES) {
+        await sleep(retryAfterMs(detailResponse, attempt * 1000));
+        continue;
+      }
+      if (!detailResponse.ok) {
+        return null;
+      }
+      return parseXianjianDetail(await detailResponse.text(), source, detailUrl);
+    } catch {
+      if (attempt >= XIANJIAN_DETAIL_RETRIES) {
+        return null;
+      }
+      await sleep(attempt * 1000);
+    }
+  }
+  return null;
+}
+
+export async function fetchSourceItems(source, options = {}) {
   if (source.provider === "manual") {
     return [];
   }
@@ -227,23 +261,12 @@ export async function fetchSourceItems(source) {
     if (!sitemapResponse.ok) {
       throw providerError(`公开索引请求失败：${sitemapResponse.status}`, sitemapResponse.status, "PROVIDER_FETCH_FAILED");
     }
-    const detailUrls = parseXianjianSitemap(await sitemapResponse.text());
+    const skipItemIds = options.skipItemIds || new Set();
+    const detailUrls = parseXianjianSitemap(await sitemapResponse.text()).filter((detailUrl) => !skipItemIds.has(xianjianIdFromUrl(detailUrl)));
     const details = await mapWithConcurrency(
       detailUrls,
       XIANJIAN_DETAIL_CONCURRENCY,
-      async (detailUrl) => {
-        try {
-          const detailResponse = await fetch(detailUrl, {
-            headers: { "User-Agent": "IntelHub/0.1 (+https://intel-hub-production-9449.up.railway.app)" },
-          });
-          if (!detailResponse.ok) {
-            return null;
-          }
-          return parseXianjianDetail(await detailResponse.text(), source, detailUrl);
-        } catch {
-          return null;
-        }
-      },
+      async (detailUrl) => fetchXianjianDetail(detailUrl, source),
     );
     return details.filter(Boolean);
   }

@@ -10,7 +10,7 @@
 - `/api/sources` 管理公众号源和视频号源。
 - `POST /api/sources/:id/sync` 按来源 provider 同步文章。
 
-运行时已经不再代理外部情报站。当前内置可同步 provider 是 `feed`、`json` 和 `xianjian`；`xianjian` 从公开 sitemap 与详情页导入摘要，默认不限制导入数量，可用 `XIANJIAN_IMPORT_LIMIT` 显式设置上限，并可用 `XIANJIAN_DETAIL_CONCURRENCY` 调整详情页抓取并发；`manual` 用于手动导入；`wechat` 和 `newrank` 是预留 provider，需要配置可用账号、Cookie 或 API Key 后再接入。
+运行时已经不再代理外部情报站。当前内置可同步 provider 是 `feed`、`json` 和 `xianjian`；`xianjian` 从公开 sitemap 与详情页导入摘要，默认不限制导入数量，可用 `XIANJIAN_IMPORT_LIMIT` 显式设置上限，并可用 `XIANJIAN_DETAIL_CONCURRENCY`、`XIANJIAN_DETAIL_RETRIES` 调整详情页抓取并发和重试次数；`manual` 用于手动导入；`wechat` 和 `newrank` 是预留 provider，需要配置可用账号、Cookie 或 API Key 后再接入。
 
 ## 本地运行
 
@@ -42,7 +42,7 @@ npm start
 - 启动命令：`npm start`
 - Node.js：20.18.1 或更高版本
 - 端口：使用平台注入的 `PORT`
-- 可选环境变量：`DATA_DIR`、`XIANJIAN_IMPORT_LIMIT`、`XIANJIAN_DETAIL_CONCURRENCY`
+- 可选环境变量：`DATA_DIR`、`XIANJIAN_IMPORT_LIMIT`、`XIANJIAN_DETAIL_CONCURRENCY`、`XIANJIAN_DETAIL_RETRIES`
 
 生产数据默认写入 `DATA_DIR/intel-hub.json`。如果平台文件系统会随部署重置，需要挂载持久卷，或下一步改接数据库。
 

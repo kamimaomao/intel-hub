@@ -127,7 +127,7 @@ app.post("/api/sources/:id/sync", async (request, response, next) => {
       return;
     }
 
-    const items = await fetchSourceItems(source);
+    const items = await fetchSourceItems(source, { skipItemIds: new Set(data.items.map((item) => item.id)) });
     await dataStore.addItems(items, source);
     const updatedSource = await dataStore.updateSource(source.id, {
       lastSyncAt: new Date().toISOString(),

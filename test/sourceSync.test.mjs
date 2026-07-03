@@ -167,3 +167,77 @@ test("fetchSourceItems imports every Xianjian detail without opening every reque
     globalThis.fetch = originalFetch;
   }
 });
+
+test("fetchSourceItems retries Xianjian detail pages after rate limiting", async () => {
+  const originalFetch = globalThis.fetch;
+  let detailAttempts = 0;
+
+  globalThis.fetch = async (url) => {
+    const value = String(url);
+    if (value.endsWith("/kb/sitemap.xml")) {
+      return new Response(`<urlset><url><loc>https://ai.xianjianwendao.com/kb/item/9001</loc></url></urlset>`, {
+        headers: { "content-type": "application/xml" },
+      });
+    }
+    if (value.endsWith("/kb/item/9001")) {
+      detailAttempts += 1;
+      if (detailAttempts === 1) {
+        return new Response(`{"error":"rate_limited"}`, { status: 429, headers: { "retry-after": "0" } });
+      }
+      return new Response(`<!doctype html><script type="application/ld+json">{"headline":"限流后成功","description":"摘要","datePublished":"2026-07-02T12:02:00+08:00","author":{"name":"GameLook"}}</script><div id="tags-region"><span>标签</span><span>AI与游戏</span></div><a href="https://mp.weixin.qq.com/s/9001">查看原文</a>`);
+    }
+    return new Response("not found", { status: 404 });
+  };
+
+  try {
+    const items = await fetchSourceItems({
+      ...source,
+      id: "source-xianjian",
+      provider: "xianjian",
+      feedUrl: "https://ai.xianjianwendao.com/kb/sitemap.xml",
+    });
+
+    assert.equal(detailAttempts, 2);
+    assert.equal(items.length, 1);
+    assert.equal(items[0].title, "限流后成功");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchSourceItems skips Xianjian items that already exist locally", async () => {
+  const originalFetch = globalThis.fetch;
+  const fetchedUrls = [];
+
+  globalThis.fetch = async (url) => {
+    const value = String(url);
+    if (value.endsWith("/kb/sitemap.xml")) {
+      return new Response(
+        `<urlset>
+          <url><loc>https://ai.xianjianwendao.com/kb/item/9101</loc></url>
+          <url><loc>https://ai.xianjianwendao.com/kb/item/9102</loc></url>
+        </urlset>`,
+        { headers: { "content-type": "application/xml" } },
+      );
+    }
+    fetchedUrls.push(value);
+    return new Response(`<!doctype html><script type="application/ld+json">{"headline":"新增详情","description":"摘要","datePublished":"2026-07-02T12:02:00+08:00","author":{"name":"GameLook"}}</script><div id="tags-region"><span>标签</span><span>AI与游戏</span></div><a href="https://mp.weixin.qq.com/s/new">查看原文</a>`);
+  };
+
+  try {
+    const items = await fetchSourceItems(
+      {
+        ...source,
+        id: "source-xianjian",
+        provider: "xianjian",
+        feedUrl: "https://ai.xianjianwendao.com/kb/sitemap.xml",
+      },
+      { skipItemIds: new Set(["xianjian-9101"]) },
+    );
+
+    assert.equal(items.length, 1);
+    assert.deepEqual(fetchedUrls, ["https://ai.xianjianwendao.com/kb/item/9102"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

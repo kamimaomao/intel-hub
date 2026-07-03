@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
-import { filterItems, normalizeSource, upsertItems } from "../server/dataStore.mjs";
+import { createDataStore, filterItems, normalizeSource, upsertItems } from "../server/dataStore.mjs";
 
 const baseItems = [
   {
@@ -92,4 +95,20 @@ test("upsertItems merges imported items by id and keeps newest first", () => {
 
   assert.deepEqual(next.map((item) => item.id), ["a2", "a1", "v1"]);
   assert.equal(next.find((item) => item.id === "a1")?.title, "AI 关卡生成更新版");
+});
+
+test("createDataStore does not reset an existing data file when JSON parsing fails", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "intel-hub-store-"));
+  const dataFile = path.join(dir, "intel-hub.json");
+  const brokenJson = `{"sources":[`;
+  await writeFile(dataFile, brokenJson, "utf8");
+
+  try {
+    const store = createDataStore({ dataFile, seedSources: [{ name: "Seed", wechatId: "seed" }] });
+
+    await assert.rejects(() => store.readData(), SyntaxError);
+    assert.equal(await readFile(dataFile, "utf8"), brokenJson);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });

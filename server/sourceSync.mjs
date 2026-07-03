@@ -2,7 +2,8 @@ import * as cheerio from "cheerio";
 import { normalizeItem, normalizeTags, text } from "./dataStore.mjs";
 
 const XIANJIAN_SITEMAP_URL = "https://ai.xianjianwendao.com/kb/sitemap.xml";
-const XIANJIAN_DEFAULT_LIMIT = Number(process.env.XIANJIAN_IMPORT_LIMIT || 500);
+const XIANJIAN_IMPORT_LIMIT = Number(process.env.XIANJIAN_IMPORT_LIMIT || 0);
+const XIANJIAN_DETAIL_CONCURRENCY = Math.max(1, Number(process.env.XIANJIAN_DETAIL_CONCURRENCY || 8));
 
 function unique(values) {
   return [...new Set(values.map((value) => text(value)).filter(Boolean))];
@@ -25,6 +26,22 @@ function providerError(message, status = 422, code = "PROVIDER_NOT_CONFIGURED") 
   error.status = status;
   error.code = code;
   return error;
+}
+
+async function mapWithConcurrency(values, concurrency, mapper) {
+  const results = new Array(values.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(values.length, Math.max(1, Number(concurrency) || 1));
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < values.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        results[currentIndex] = await mapper(values[currentIndex], currentIndex);
+      }
+    }),
+  );
+  return results;
 }
 
 function mergeSourceTags(source, tags) {
@@ -152,14 +169,16 @@ export function parseJsonItems(payload, source) {
   );
 }
 
-export function parseXianjianSitemap(sitemapText, limit = XIANJIAN_DEFAULT_LIMIT) {
+export function parseXianjianSitemap(sitemapText, limit = XIANJIAN_IMPORT_LIMIT) {
   const $ = cheerio.load(sitemapText, { xmlMode: true });
-  return unique(
+  const urls = unique(
     $("loc")
       .toArray()
       .map((element) => $(element).text())
       .filter((url) => /\/kb\/item\/\d+/.test(url)),
-  ).slice(0, Math.max(1, Number(limit) || XIANJIAN_DEFAULT_LIMIT));
+  );
+  const parsedLimit = Number(limit);
+  return Number.isFinite(parsedLimit) && parsedLimit > 0 ? urls.slice(0, parsedLimit) : urls;
 }
 
 export function parseXianjianDetail(html, source, detailUrl) {
@@ -208,17 +227,23 @@ export async function fetchSourceItems(source) {
     if (!sitemapResponse.ok) {
       throw providerError(`公开索引请求失败：${sitemapResponse.status}`, sitemapResponse.status, "PROVIDER_FETCH_FAILED");
     }
-    const detailUrls = parseXianjianSitemap(await sitemapResponse.text(), XIANJIAN_DEFAULT_LIMIT);
-    const details = await Promise.all(
-      detailUrls.map(async (detailUrl) => {
-        const detailResponse = await fetch(detailUrl, {
-          headers: { "User-Agent": "IntelHub/0.1 (+https://intel-hub-production-9449.up.railway.app)" },
-        });
-        if (!detailResponse.ok) {
+    const detailUrls = parseXianjianSitemap(await sitemapResponse.text());
+    const details = await mapWithConcurrency(
+      detailUrls,
+      XIANJIAN_DETAIL_CONCURRENCY,
+      async (detailUrl) => {
+        try {
+          const detailResponse = await fetch(detailUrl, {
+            headers: { "User-Agent": "IntelHub/0.1 (+https://intel-hub-production-9449.up.railway.app)" },
+          });
+          if (!detailResponse.ok) {
+            return null;
+          }
+          return parseXianjianDetail(await detailResponse.text(), source, detailUrl);
+        } catch {
           return null;
         }
-        return parseXianjianDetail(await detailResponse.text(), source, detailUrl);
-      }),
+      },
     );
     return details.filter(Boolean);
   }

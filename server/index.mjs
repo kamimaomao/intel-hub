@@ -2,7 +2,7 @@ import express from "express";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createDataStore, normalizeTags, slug } from "./dataStore.mjs";
+import { countItems, createDataStore, normalizeTags, slug } from "./dataStore.mjs";
 import { fetchSourceItems } from "./sourceSync.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +40,15 @@ app.get("/api/item/:id", async (request, response, next) => {
       return;
     }
     response.json({ item });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/item-counts", async (_request, response, next) => {
+  try {
+    const data = await dataStore.readData();
+    response.json({ counts: countItems(data.items) });
   } catch (error) {
     next(error);
   }
@@ -125,7 +134,7 @@ app.post("/api/sources/:id/sync", async (request, response, next) => {
       syncStatus: "success",
       syncMessage: `同步 ${items.length} 条`,
     });
-    response.json({ source: updatedSource, imported: items.length, items });
+    response.json({ source: updatedSource, imported: items.length });
   } catch (error) {
     await dataStore.updateSource(sourceId, {
       lastSyncAt: new Date().toISOString(),

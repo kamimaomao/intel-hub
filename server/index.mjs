@@ -12,6 +12,7 @@ const dataDir = process.env.DATA_DIR || path.join(rootDir, "data");
 const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
 const dataStore = createDataStore({ dataFile, seedSources: originalSources });
+const syncJobs = new Map();
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -88,6 +89,26 @@ app.get("/api/sources", async (_request, response, next) => {
   }
 });
 
+app.get("/api/sources/:id/sync", async (request, response, next) => {
+  try {
+    const data = await dataStore.readData();
+    const source = data.sources.find((itemSource) => itemSource.id === request.params.id);
+    if (!source) {
+      response.status(404).json({ error: "来源不存在", code: "SOURCE_NOT_FOUND" });
+      return;
+    }
+    const job = syncJobs.get(source.id);
+    response.json({
+      source,
+      status: job?.status || source.syncStatus || "idle",
+      imported: job?.imported || 0,
+      message: job?.message || source.syncMessage || "",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/sources", async (request, response, next) => {
   try {
     const name = String(request.body?.name || "").trim();
@@ -117,6 +138,40 @@ app.post("/api/sources", async (request, response, next) => {
   }
 });
 
+async function runSourceSync(sourceId) {
+  const job = syncJobs.get(sourceId);
+  try {
+    const data = await dataStore.readData();
+    const source = data.sources.find((itemSource) => itemSource.id === sourceId);
+    if (!source) {
+      throw new Error("来源不存在");
+    }
+
+    const items = await fetchSourceItems(source, { skipItemIds: new Set(data.items.map((item) => item.id)) });
+    await dataStore.addItems(items, source);
+    const updatedSource = await dataStore.updateSource(source.id, {
+      lastSyncAt: new Date().toISOString(),
+      syncStatus: "success",
+      syncMessage: `同步 ${items.length} 条`,
+    });
+    if (job) {
+      job.status = "success";
+      job.imported = items.length;
+      job.message = updatedSource.syncMessage;
+    }
+  } catch (error) {
+    await dataStore.updateSource(sourceId, {
+      lastSyncAt: new Date().toISOString(),
+      syncStatus: "failed",
+      syncMessage: error.message || "同步失败",
+    });
+    if (job) {
+      job.status = "failed";
+      job.message = error.message || "同步失败";
+    }
+  }
+}
+
 app.post("/api/sources/:id/sync", async (request, response, next) => {
   const sourceId = request.params.id;
   try {
@@ -127,20 +182,27 @@ app.post("/api/sources/:id/sync", async (request, response, next) => {
       return;
     }
 
-    const items = await fetchSourceItems(source, { skipItemIds: new Set(data.items.map((item) => item.id)) });
-    await dataStore.addItems(items, source);
+    const currentJob = syncJobs.get(sourceId);
+    if (currentJob?.status === "syncing") {
+      response.status(202).json({ source, status: "syncing", imported: currentJob.imported, message: currentJob.message });
+      return;
+    }
+
     const updatedSource = await dataStore.updateSource(source.id, {
       lastSyncAt: new Date().toISOString(),
-      syncStatus: "success",
-      syncMessage: `同步 ${items.length} 条`,
+      syncStatus: "syncing",
+      syncMessage: "同步中，原站限流时会自动等待后继续。",
     });
-    response.json({ source: updatedSource, imported: items.length });
+
+    syncJobs.set(sourceId, {
+      status: "syncing",
+      imported: 0,
+      message: updatedSource.syncMessage,
+      startedAt: new Date().toISOString(),
+    });
+    runSourceSync(sourceId);
+    response.status(202).json({ source: updatedSource, status: "syncing", imported: 0, message: updatedSource.syncMessage });
   } catch (error) {
-    await dataStore.updateSource(sourceId, {
-      lastSyncAt: new Date().toISOString(),
-      syncStatus: "failed",
-      syncMessage: error.message || "同步失败",
-    });
     next(error);
   }
 });

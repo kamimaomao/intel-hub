@@ -39,7 +39,7 @@ type SourceAccount = {
   originalCount?: number;
   itemCount?: number;
   lastSyncAt?: string;
-  syncStatus?: "idle" | "success" | "failed";
+  syncStatus?: "idle" | "syncing" | "success" | "failed";
   syncMessage?: string;
 };
 
@@ -77,6 +77,13 @@ type SourceDraft = {
   tags: string;
   description: string;
   status: SourceAccount["status"];
+};
+
+type SyncResult = {
+  source: SourceAccount;
+  imported: number;
+  status?: SourceAccount["syncStatus"];
+  message?: string;
 };
 
 const emptyDraft: SourceDraft = {
@@ -136,6 +143,10 @@ function filterItems(items: IntelItem[], tag: string, query: string) {
     const searchable = `${item.title} ${item.summary} ${item.source} ${item.tag} ${item.tags.join(" ")}`.toLowerCase();
     return matchesTag && (!normalizedQuery || searchable.includes(normalizedQuery));
   });
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function countLink(link: NavLink, counts: ItemCounts) {
@@ -705,9 +716,9 @@ function AdminPage({
                 </div>
                 <div className="source-actions">
                   <span className={source.status === "启用" ? "status on" : "status"}>{source.status}</span>
-                  <button type="button" onClick={() => onSync(source.id)} disabled={syncingSourceId === source.id}>
+                  <button type="button" onClick={() => onSync(source.id)} disabled={syncingSourceId === source.id || source.syncStatus === "syncing"}>
                     <RefreshCw size={14} />
-                    {syncingSourceId === source.id ? "同步中" : "同步"}
+                    {syncingSourceId === source.id || source.syncStatus === "syncing" ? "同步中" : "同步"}
                   </button>
                 </div>
               </section>
@@ -839,8 +850,13 @@ export default function App() {
     setSyncingSourceId(sourceId);
     setFormError("");
     try {
-      const result = await api<{ source: SourceAccount; imported: number }>(`/api/sources/${sourceId}/sync`, { method: "POST" });
+      let result = await api<SyncResult>(`/api/sources/${sourceId}/sync`, { method: "POST" });
       setSources((current) => current.map((source) => (source.id === sourceId ? result.source : source)));
+      while (result.status === "syncing" || result.source.syncStatus === "syncing") {
+        await delay(5000);
+        result = await api<SyncResult>(`/api/sources/${sourceId}/sync`);
+        setSources((current) => current.map((source) => (source.id === sourceId ? result.source : source)));
+      }
       const [{ items: nextItems, total: nextTotal }, { counts: nextCounts }] = await Promise.all([
         api<{ items: IntelItem[]; total: number }>(itemUrl),
         api<{ counts: ItemCounts }>("/api/item-counts"),

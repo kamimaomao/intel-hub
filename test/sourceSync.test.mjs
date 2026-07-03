@@ -67,6 +67,17 @@ test("parseXianjianSitemap extracts newest public item URLs", () => {
   assert.deepEqual(urls, ["https://ai.xianjianwendao.com/kb/item/6074"]);
 });
 
+test("parseXianjianSitemap default import is not capped at the old 20 item sample", () => {
+  const sitemap = `<?xml version="1.0"?><urlset>${Array.from(
+    { length: 25 },
+    (_, index) => `<url><loc>https://ai.xianjianwendao.com/kb/item/${7000 + index}</loc></url>`,
+  ).join("")}</urlset>`;
+
+  const urls = parseXianjianSitemap(sitemap);
+
+  assert.equal(urls.length, 25);
+});
+
 test("parseXianjianDetail converts public detail HTML into a local item", () => {
   const html = `<!doctype html><html><head>
     <meta property="og:image" content="https://example.com/cover.jpg">

@@ -54,6 +54,30 @@ test("parseJsonItems accepts common provider list shapes", () => {
   assert.equal(items[0].originalUrl, "https://example.com/json-1");
 });
 
+test("parseJsonItems accepts playable video fields", () => {
+  const items = parseJsonItems(
+    {
+      data: [
+        {
+          id: "wxvideo-1",
+          title: "视频号素材拆解",
+          desc: "视频摘要",
+          video_url: "https://cdn.example.com/wxvideo-1.mp4",
+          cover_url: "https://cdn.example.com/wxvideo-1.jpg",
+          duration: "00:42",
+          link: "https://channels.weixin.qq.com/feed/wxvideo-1",
+        },
+      ],
+    },
+    { ...source, name: "新游观察", sourceType: "视频号", provider: "json", tags: ["视频号"] },
+  );
+
+  assert.equal(items[0].kind, "视频号");
+  assert.equal(items[0].videoUrl, "https://cdn.example.com/wxvideo-1.mp4");
+  assert.equal(items[0].coverUrl, "https://cdn.example.com/wxvideo-1.jpg");
+  assert.equal(items[0].duration, "00:42");
+});
+
 test("parseXianjianSitemap extracts newest public item URLs", () => {
   const urls = parseXianjianSitemap(
     `<?xml version="1.0"?><urlset>

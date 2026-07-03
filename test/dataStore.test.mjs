@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { countItems, createDataStore, filterItems, normalizeSource, upsertItems } from "../server/dataStore.mjs";
+import { countItems, createDataStore, filterItems, normalizeItem, normalizeSource, upsertItems } from "../server/dataStore.mjs";
 
 const baseItems = [
   {
@@ -51,17 +51,39 @@ test("normalizeSource stores provider fields for self-owned connectors", () => {
   const source = normalizeSource({
     name: "新游观察",
     sourceType: "视频号",
-    wechatId: "sphqRMmfwGMaAR0",
+    wechatId: "sphqRMmfwGMaARO",
     provider: "feed",
-    externalId: "sphqRMmfwGMaAR0",
+    externalId: "sphqRMmfwGMaARO",
     feedUrl: "https://example.com/feed.xml",
     tags: "视频号,买量素材",
   });
 
   assert.equal(source.provider, "feed");
-  assert.equal(source.externalId, "sphqRMmfwGMaAR0");
+  assert.equal(source.externalId, "sphqRMmfwGMaARO");
   assert.equal(source.feedUrl, "https://example.com/feed.xml");
   assert.deepEqual(source.tags, ["视频号", "买量素材"]);
+});
+
+test("normalizeItem keeps playable video metadata", () => {
+  const item = normalizeItem(
+    {
+      id: "video-1",
+      title: "新游观察视频",
+      summary: "视频摘要",
+      videoUrl: "https://cdn.example.com/video.mp4",
+      embedUrl: "https://player.example.com/video-1",
+      coverUrl: "https://cdn.example.com/cover.jpg",
+      duration: "01:23",
+      tags: ["视频号"],
+    },
+    { id: "video-xinyouguancha", name: "新游观察", sourceType: "视频号", provider: "json" },
+  );
+
+  assert.equal(item.kind, "视频号");
+  assert.equal(item.videoUrl, "https://cdn.example.com/video.mp4");
+  assert.equal(item.embedUrl, "https://player.example.com/video-1");
+  assert.equal(item.coverUrl, "https://cdn.example.com/cover.jpg");
+  assert.equal(item.duration, "01:23");
 });
 
 test("normalizeSource keeps the public Xianjian sitemap provider", () => {
@@ -74,6 +96,42 @@ test("normalizeSource keeps the public Xianjian sitemap provider", () => {
 
   assert.equal(source.provider, "xianjian");
   assert.equal(source.feedUrl, "https://ai.xianjianwendao.com/kb/sitemap.xml");
+});
+
+test("addSource updates an existing source with the same type and name", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "intel-hub-store-"));
+  const dataFile = path.join(dir, "intel-hub.json");
+
+  try {
+    const store = createDataStore({
+      dataFile,
+      seedSources: [
+        {
+          id: "video-xinyouguancha",
+          sourceType: "视频号",
+          name: "新游观察",
+          wechatId: "sphqRMmfwGMaAR0",
+          externalId: "sphqRMmfwGMaAR0",
+        },
+      ],
+    });
+
+    const source = await store.addSource({
+      sourceType: "视频号",
+      name: "新游观察",
+      wechatId: "sphqRMmfwGMaARO",
+      externalId: "sphqRMmfwGMaARO",
+      description: "IP归属地：北京；认证信息：游戏自媒体；主体类型：个人。",
+      tags: ["视频号", "新游观察", "AI与游戏"],
+    });
+    const data = await store.readData();
+
+    assert.equal(source.id, "video-xinyouguancha");
+    assert.equal(data.sources.filter((item) => item.name === "新游观察").length, 1);
+    assert.equal(data.sources.find((item) => item.name === "新游观察")?.externalId, "sphqRMmfwGMaARO");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test("upsertItems merges imported items by id and keeps newest first", () => {

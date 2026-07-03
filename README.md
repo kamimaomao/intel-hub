@@ -12,6 +12,8 @@
 
 运行时已经不再代理外部情报站。当前内置可同步 provider 是 `feed`、`json` 和 `xianjian`；`xianjian` 从公开 sitemap 与详情页导入摘要，默认不限制导入数量，可用 `XIANJIAN_IMPORT_LIMIT` 显式设置上限，并可用 `XIANJIAN_DETAIL_CONCURRENCY`、`XIANJIAN_DETAIL_RETRIES` 调整详情页抓取并发和重试次数；`manual` 用于手动导入；`wechat` 和 `newrank` 是预留 provider，需要配置可用账号、Cookie 或 API Key 后再接入。
 
+视频号条目支持 `videoUrl` / `video_url`、`embedUrl` / `embed_url`、`coverUrl` / `cover_url`、`duration` 字段；详情页会优先用 `videoUrl` 播放，其次使用 `embedUrl` 嵌入。
+
 ## 本地运行
 
 ```bash

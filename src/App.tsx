@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Heart,
   Newspaper,
+  PlayCircle,
   RefreshCw,
   Search,
   Settings,
@@ -56,6 +57,10 @@ type IntelItem = {
   originalUrl: string;
   detailUrl?: string;
   summaryHtml?: string;
+  videoUrl?: string;
+  embedUrl?: string;
+  coverUrl?: string;
+  duration?: string;
 };
 
 type IntelDetail = Omit<IntelItem, "signals" | "tag"> & {
@@ -159,6 +164,10 @@ function countLinks(links: NavLink[], counts: ItemCounts, setName?: string) {
     return counts.sets[setName];
   }
   return links.reduce((total, link) => total + countLink(link, counts), 0);
+}
+
+function hasPlayableVideo(item: Pick<IntelItem, "videoUrl" | "embedUrl">) {
+  return Boolean(item.videoUrl || item.embedUrl);
 }
 
 function Sidebar({
@@ -383,6 +392,12 @@ function ItemCard({
         <strong>{item.source}</strong>
         <span>·</span>
         <time dateTime={item.date}>{item.date}</time>
+        {hasPlayableVideo(item) && (
+          <span className="video-pill">
+            <PlayCircle size={13} />
+            视频
+          </span>
+        )}
         <button type="button" aria-label="收藏">
           <Heart size={16} />
         </button>
@@ -495,6 +510,28 @@ function ItemsPage({
   );
 }
 
+function VideoPlayer({ item }: { item: IntelDetail }) {
+  if (item.videoUrl) {
+    return (
+      <section className="video-player">
+        <video controls preload="metadata" poster={item.coverUrl || undefined} src={item.videoUrl} />
+        {item.duration && <span>{item.duration}</span>}
+      </section>
+    );
+  }
+
+  if (item.embedUrl) {
+    return (
+      <section className="video-player">
+        <iframe src={item.embedUrl} title={item.title} allow="fullscreen; encrypted-media; picture-in-picture" />
+        {item.duration && <span>{item.duration}</span>}
+      </section>
+    );
+  }
+
+  return null;
+}
+
 function DetailPage({ itemId, onBack }: { itemId: string; onBack: () => void }) {
   const [item, setItem] = useState<IntelDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -543,6 +580,7 @@ function DetailPage({ itemId, onBack }: { itemId: string; onBack: () => void }) 
             <time dateTime={item.date}>{item.date}</time>
           </div>
           <h1>{item.title}</h1>
+          {hasPlayableVideo(item) && <VideoPlayer item={item} />}
           {item.summaryHtml && <div className="article-summary" dangerouslySetInnerHTML={{ __html: item.summaryHtml }} />}
           <div className="tag-row detail-tags">
             {item.tags.map((tag) => (

@@ -752,6 +752,13 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [syncingSourceId, setSyncingSourceId] = useState("");
 
+  const currentCount = activeAuthor
+    ? sources.find((source) => source.name === activeAuthor)?.itemCount || total
+    : activeTag === "全部"
+      ? itemCounts.total
+      : itemCounts.tags[activeTag] || total;
+  const displayTotal = query.trim() ? total : currentCount;
+
   const itemUrl = useMemo(() => {
     const params = new URLSearchParams();
     if (activeAuthor) {
@@ -909,7 +916,7 @@ export default function App() {
         <ItemsPage
           activeTag={activeTitle}
           items={items}
-          total={total}
+          total={displayTotal}
           loading={loading}
           error={loadError}
           viewMode={viewMode}

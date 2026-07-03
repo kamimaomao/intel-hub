@@ -1119,10 +1119,6 @@ a:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .side-nav strong {
-    display: none;
-  }
-
   .campaign-metrics strong {
     flex: 1 1 120px;
   }

@@ -10,7 +10,7 @@
 - `/api/sources` 管理公众号源和视频号源。
 - `POST /api/sources/:id/sync` 按来源 provider 同步文章。
 
-运行时已经不再代理外部情报站。当前内置可同步 provider 是 `feed`、`json` 和 `xianjian`；`xianjian` 从公开 sitemap 与详情页导入摘要，默认每次同步最新 20 条，可用 `XIANJIAN_IMPORT_LIMIT` 调整；`manual` 用于手动导入；`wechat` 和 `newrank` 是预留 provider，需要配置可用账号、Cookie 或 API Key 后再接入。
+运行时已经不再代理外部情报站。当前内置可同步 provider 是 `feed`、`json` 和 `xianjian`；`xianjian` 从公开 sitemap 与详情页导入摘要，默认每次同步最新 500 条，可用 `XIANJIAN_IMPORT_LIMIT` 调整；`manual` 用于手动导入；`wechat` 和 `newrank` 是预留 provider，需要配置可用账号、Cookie 或 API Key 后再接入。
 
 ## 本地运行
 

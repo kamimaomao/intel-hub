@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { normalizeItem, normalizeTags, text } from "./dataStore.mjs";
 
 const XIANJIAN_SITEMAP_URL = "https://ai.xianjianwendao.com/kb/sitemap.xml";
-const XIANJIAN_DEFAULT_LIMIT = Number(process.env.XIANJIAN_IMPORT_LIMIT || 20);
+const XIANJIAN_DEFAULT_LIMIT = Number(process.env.XIANJIAN_IMPORT_LIMIT || 500);
 
 function unique(values) {
   return [...new Set(values.map((value) => text(value)).filter(Boolean))];

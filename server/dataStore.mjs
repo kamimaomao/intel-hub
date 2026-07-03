@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const validProviders = new Set(["manual", "feed", "json", "xianjian", "wechat", "newrank"]);
@@ -142,14 +142,21 @@ export function createSeedData(seedSources = []) {
 }
 
 export function createDataStore({ dataFile, seedSources = [] }) {
+  async function writeDataFile(data) {
+    const tempFile = `${dataFile}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+    await writeFile(tempFile, JSON.stringify(normalizeData(data, seedSources), null, 2), "utf8");
+    await rename(tempFile, dataFile);
+  }
+
   async function ensureDataFile() {
     await mkdir(path.dirname(dataFile), { recursive: true });
     try {
       await stat(dataFile);
-      const current = normalizeData(JSON.parse(await readFile(dataFile, "utf8")), seedSources);
-      await writeFile(dataFile, JSON.stringify(current, null, 2), "utf8");
-    } catch {
-      await writeFile(dataFile, JSON.stringify(createSeedData(seedSources), null, 2), "utf8");
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+      await writeDataFile(createSeedData(seedSources));
     }
   }
 
@@ -159,7 +166,7 @@ export function createDataStore({ dataFile, seedSources = [] }) {
   }
 
   async function writeData(data) {
-    await writeFile(dataFile, JSON.stringify(normalizeData(data, seedSources), null, 2), "utf8");
+    await writeDataFile(data);
   }
 
   return {

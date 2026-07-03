@@ -67,15 +67,15 @@ test("parseXianjianSitemap extracts newest public item URLs", () => {
   assert.deepEqual(urls, ["https://ai.xianjianwendao.com/kb/item/6074"]);
 });
 
-test("parseXianjianSitemap default import is not capped at the old 20 item sample", () => {
+test("parseXianjianSitemap default import is uncapped", () => {
   const sitemap = `<?xml version="1.0"?><urlset>${Array.from(
-    { length: 25 },
+    { length: 550 },
     (_, index) => `<url><loc>https://ai.xianjianwendao.com/kb/item/${7000 + index}</loc></url>`,
   ).join("")}</urlset>`;
 
   const urls = parseXianjianSitemap(sitemap);
 
-  assert.equal(urls.length, 25);
+  assert.equal(urls.length, 550);
 });
 
 test("parseXianjianDetail converts public detail HTML into a local item", () => {
@@ -124,6 +124,45 @@ test("fetchSourceItems imports public Xianjian sitemap details without private A
     assert.equal(items.length, 1);
     assert.equal(items[0].title, "公开详情");
     assert.equal(items[0].provider, "xianjian");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchSourceItems imports every Xianjian detail without opening every request at once", async () => {
+  const originalFetch = globalThis.fetch;
+  let activeDetails = 0;
+  let maxActiveDetails = 0;
+  const detailUrls = Array.from({ length: 12 }, (_, index) => `https://ai.xianjianwendao.com/kb/item/${8000 + index}`);
+
+  globalThis.fetch = async (url) => {
+    const value = String(url);
+    if (value.endsWith("/kb/sitemap.xml")) {
+      return new Response(`<urlset>${detailUrls.map((detailUrl) => `<url><loc>${detailUrl}</loc></url>`).join("")}</urlset>`, {
+        headers: { "content-type": "application/xml" },
+      });
+    }
+    if (detailUrls.includes(value)) {
+      activeDetails += 1;
+      maxActiveDetails = Math.max(maxActiveDetails, activeDetails);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      activeDetails -= 1;
+      const id = value.match(/(\d+)$/)?.[1];
+      return new Response(`<!doctype html><script type="application/ld+json">{"headline":"公开详情 ${id}","description":"摘要","datePublished":"2026-07-02T12:02:00+08:00","author":{"name":"GameLook"}}</script><div id="tags-region"><span>标签</span><span>AI与游戏</span></div><a href="https://mp.weixin.qq.com/s/${id}">查看原文</a>`);
+    }
+    return new Response("not found", { status: 404 });
+  };
+
+  try {
+    const items = await fetchSourceItems({
+      ...source,
+      id: "source-xianjian",
+      provider: "xianjian",
+      feedUrl: "https://ai.xianjianwendao.com/kb/sitemap.xml",
+    });
+
+    assert.equal(items.length, detailUrls.length);
+    assert.equal(maxActiveDetails <= 8, true);
   } finally {
     globalThis.fetch = originalFetch;
   }

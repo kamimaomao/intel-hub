@@ -108,6 +108,18 @@ export function filterItems(items, { tag = "全部", q = "", author = "" } = {})
     .sort((left, right) => text(right.date).localeCompare(text(left.date)));
 }
 
+export function countItems(items = []) {
+  const tags = {};
+  for (const item of items || []) {
+    for (const tag of new Set([text(item?.tag), ...normalizeTags(item?.tags)])) {
+      if (tag && tag !== "全部") {
+        tags[tag] = (tags[tag] || 0) + 1;
+      }
+    }
+  }
+  return { total: Array.isArray(items) ? items.length : 0, tags };
+}
+
 export function upsertItems(currentItems, importedItems) {
   const merged = new Map();
   for (const item of currentItems || []) {

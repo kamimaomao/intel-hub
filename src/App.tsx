@@ -62,6 +62,11 @@ type IntelDetail = Omit<IntelItem, "signals" | "tag"> & {
   contentHtml: string;
 };
 
+type ItemCounts = {
+  total: number;
+  tags: Record<string, number>;
+};
+
 type SourceDraft = {
   sourceType: SourceAccount["sourceType"];
   provider: SourceProvider;
@@ -90,6 +95,7 @@ const apiBase = import.meta.env.VITE_API_BASE?.replace(/\/$/, "") || "";
 const offlineSourcesKey = "intel-hub-offline-sources-v2";
 const fallbackSources = originalSources as SourceAccount[];
 const fallbackItems: IntelItem[] = [];
+const emptyCounts: ItemCounts = { total: 0, tags: {} };
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBase}${url}`, {
@@ -132,12 +138,21 @@ function filterItems(items: IntelItem[], tag: string, query: string) {
   });
 }
 
+function countLink(link: NavLink, counts: ItemCounts) {
+  return link.value === "全部" ? counts.total : counts.tags[link.value] || 0;
+}
+
+function countLinks(links: NavLink[], counts: ItemCounts) {
+  return links.reduce((total, link) => total + countLink(link, counts), 0);
+}
+
 function Sidebar({
   activeTag,
   activeAuthor,
   pageMode,
   query,
   sources,
+  itemCounts,
   summarySize,
   onSelectTag,
   onSelectAuthor,
@@ -150,6 +165,7 @@ function Sidebar({
   pageMode: PageMode;
   query: string;
   sources: SourceAccount[];
+  itemCounts: ItemCounts;
   summarySize: number;
   onSelectTag: (tag: string, label?: string) => void;
   onSelectAuthor: (author: string) => void;
@@ -174,7 +190,7 @@ function Sidebar({
         onClick={() => onSelectTag(link.value, link.label)}
       >
         <span>{link.label}</span>
-        <strong>{link.count}</strong>
+        <strong>{countLink(link, itemCounts)}</strong>
       </button>
     );
   }
@@ -206,7 +222,7 @@ function Sidebar({
           <details className="nav-group" key={group.title} open={group.links.some((link) => tagActive(link.value)) || undefined}>
             <summary>
               <span>▸ {group.title}</span>
-              <strong>{group.count}</strong>
+              <strong>{countLinks(group.links, itemCounts)}</strong>
             </summary>
             <div>
               {group.links.map((link) => renderTagButton(link, "nav-subrow"))}
@@ -218,7 +234,7 @@ function Sidebar({
         <details className="nav-group" open={playTypeLinks.concat(themeLinks).some((link) => tagActive(link.value)) || undefined}>
           <summary>
             <span>▸ 玩法 / 主题</span>
-            <strong>{playTypeLinks.length + themeLinks.length}</strong>
+            <strong>{countLinks(playTypeLinks.concat(themeLinks), itemCounts)}</strong>
           </summary>
           <div className="chip-section">
             <p>玩法品类</p>
@@ -274,7 +290,7 @@ function Sidebar({
 
         <button className={pageMode === "admin" ? "active" : ""} type="button" onClick={() => onPageModeChange("admin")}>
           <span>后台管理</span>
-          <strong>源</strong>
+          <strong>{availableSources.length}</strong>
         </button>
       </nav>
 
@@ -713,6 +729,7 @@ export default function App() {
   const [items, setItems] = useState<IntelItem[]>([]);
   const [total, setTotal] = useState(0);
   const [sources, setSources] = useState<SourceAccount[]>([]);
+  const [itemCounts, setItemCounts] = useState<ItemCounts>(emptyCounts);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -743,19 +760,22 @@ export default function App() {
       setLoading(true);
       setLoadError("");
       try {
-        const [{ items: nextItems, total: nextTotal }, { sources: nextSources }] = offline
+        const [{ items: nextItems, total: nextTotal }, { sources: nextSources }, { counts: nextCounts }] = offline
           ? [
               { items: filterItems(fallbackItems, activeTag, query), total: fallbackItems.length },
               { sources: loadOfflineSources() },
+              { counts: emptyCounts },
             ]
           : await Promise.all([
               api<{ items: IntelItem[]; total: number }>(itemUrl),
               api<{ sources: SourceAccount[] }>("/api/sources"),
+              api<{ counts: ItemCounts }>("/api/item-counts"),
             ]);
         if (!cancelled) {
           setItems(nextItems);
           setTotal(nextTotal);
           setSources(nextSources);
+          setItemCounts(nextCounts);
         }
       } finally {
         if (!cancelled) {
@@ -768,6 +788,7 @@ export default function App() {
         setItems([]);
         setTotal(0);
         setSources(loadOfflineSources());
+        setItemCounts(emptyCounts);
         setLoadError(error instanceof Error ? error.message : "没有连上真实数据后端。请部署 Node 服务，并配置自己的数据源。");
         setLoading(false);
       }
@@ -820,9 +841,13 @@ export default function App() {
     try {
       const result = await api<{ source: SourceAccount; imported: number }>(`/api/sources/${sourceId}/sync`, { method: "POST" });
       setSources((current) => current.map((source) => (source.id === sourceId ? result.source : source)));
-      const { items: nextItems, total: nextTotal } = await api<{ items: IntelItem[]; total: number }>(itemUrl);
+      const [{ items: nextItems, total: nextTotal }, { counts: nextCounts }] = await Promise.all([
+        api<{ items: IntelItem[]; total: number }>(itemUrl),
+        api<{ counts: ItemCounts }>("/api/item-counts"),
+      ]);
       setItems(nextItems);
       setTotal(nextTotal);
+      setItemCounts(nextCounts);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "同步失败");
     } finally {
@@ -838,6 +863,7 @@ export default function App() {
         pageMode={pageMode}
         query={query}
         sources={sources}
+        itemCounts={itemCounts}
         summarySize={summarySize}
         onSelectTag={(tag, label = tag) => {
           setSelectedItemId("");

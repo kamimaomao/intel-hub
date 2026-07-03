@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createDataStore, filterItems, normalizeSource, upsertItems } from "../server/dataStore.mjs";
+import { countItems, createDataStore, filterItems, normalizeSource, upsertItems } from "../server/dataStore.mjs";
 
 const baseItems = [
   {
@@ -95,6 +95,19 @@ test("upsertItems merges imported items by id and keeps newest first", () => {
 
   assert.deepEqual(next.map((item) => item.id), ["a2", "a1", "v1"]);
   assert.equal(next.find((item) => item.id === "a1")?.title, "AI 关卡生成更新版");
+});
+
+test("countItems returns real totals by tag", () => {
+  const counts = countItems([
+    baseItems[0],
+    { ...baseItems[0], id: "a2", tags: ["AI与游戏", "发行·买量数据与素材"], tag: "AI与游戏" },
+    baseItems[1],
+  ]);
+
+  assert.equal(counts.total, 3);
+  assert.equal(counts.tags["AI与游戏"], 2);
+  assert.equal(counts.tags["发行·买量数据与素材"], 1);
+  assert.equal(counts.tags["买量素材"], 1);
 });
 
 test("createDataStore does not reset an existing data file when JSON parsing fails", async () => {

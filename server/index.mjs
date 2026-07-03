@@ -13,6 +13,54 @@ const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
 const dataStore = createDataStore({ dataFile, seedSources: originalSources });
 const syncJobs = new Map();
+const itemCountSets = {
+  "发行": [
+    "发行·买量数据与素材",
+    "发行·行业大盘与新游",
+    "发行·流水榜单与市场",
+    "发行·立项选品与休闲发行",
+    "发行·广告变现策略",
+  ],
+  "研发": [
+    "研发·爆款拆解与系统复盘",
+    "研发·策划与设计方法论",
+    "研发·数值设计",
+    "研发·研发技术与独立开发",
+    "研发·小游戏立项",
+  ],
+  "出海": [
+    "出海·出海资讯与策略",
+    "出海·海外买量与素材",
+    "出海·海外数据与榜单",
+    "出海·短剧出海与分发",
+  ],
+  "玩法 / 主题": [
+    "SLG",
+    "合成",
+    "模拟经营",
+    "休闲",
+    "超休闲",
+    "三消",
+    "卡牌",
+    "放置",
+    "Roguelike",
+    "塔防",
+    "二次元",
+    "重度MMO",
+    "买量素材",
+    "数值设计",
+    "IAA变现",
+    "IAP混变",
+    "出海",
+    "爆款拆解",
+    "AI工具",
+    "平台政策",
+    "融资资本",
+    "榜单数据",
+    "投放ROI",
+    "长线运营",
+  ],
+};
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -49,7 +97,7 @@ app.get("/api/item/:id", async (request, response, next) => {
 app.get("/api/item-counts", async (_request, response, next) => {
   try {
     const data = await dataStore.readData();
-    response.json({ counts: countItems(data.items) });
+    response.json({ counts: countItems(data.items, itemCountSets) });
   } catch (error) {
     next(error);
   }

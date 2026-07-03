@@ -65,6 +65,7 @@ type IntelDetail = Omit<IntelItem, "signals" | "tag"> & {
 type ItemCounts = {
   total: number;
   tags: Record<string, number>;
+  sets?: Record<string, number>;
 };
 
 type SourceDraft = {
@@ -153,7 +154,10 @@ function countLink(link: NavLink, counts: ItemCounts) {
   return link.value === "全部" ? counts.total : counts.tags[link.value] || 0;
 }
 
-function countLinks(links: NavLink[], counts: ItemCounts) {
+function countLinks(links: NavLink[], counts: ItemCounts, setName?: string) {
+  if (setName && typeof counts.sets?.[setName] === "number") {
+    return counts.sets[setName];
+  }
   return links.reduce((total, link) => total + countLink(link, counts), 0);
 }
 
@@ -233,7 +237,7 @@ function Sidebar({
           <details className="nav-group" key={group.title} open={group.links.some((link) => tagActive(link.value)) || undefined}>
             <summary>
               <span>▸ {group.title}</span>
-              <strong>{countLinks(group.links, itemCounts)}</strong>
+              <strong>{countLinks(group.links, itemCounts, group.title)}</strong>
             </summary>
             <div>
               {group.links.map((link) => renderTagButton(link, "nav-subrow"))}
@@ -245,7 +249,7 @@ function Sidebar({
         <details className="nav-group" open={playTypeLinks.concat(themeLinks).some((link) => tagActive(link.value)) || undefined}>
           <summary>
             <span>▸ 玩法 / 主题</span>
-            <strong>{countLinks(playTypeLinks.concat(themeLinks), itemCounts)}</strong>
+            <strong>{countLinks(playTypeLinks.concat(themeLinks), itemCounts, "玩法 / 主题")}</strong>
           </summary>
           <div className="chip-section">
             <p>玩法品类</p>

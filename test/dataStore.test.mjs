@@ -110,6 +110,21 @@ test("countItems returns real totals by tag", () => {
   assert.equal(counts.tags["买量素材"], 1);
 });
 
+test("countItems returns deduplicated totals for tag sets", () => {
+  const counts = countItems(
+    [
+      { ...baseItems[0], tags: ["SLG", "买量素材"], tag: "AI与游戏" },
+      { ...baseItems[1], tags: ["SLG"], tag: "小游戏" },
+      { ...baseItems[1], id: "v2", tags: ["公众号"], tag: "其他" },
+    ],
+    { "玩法 / 主题": ["SLG", "买量素材"] },
+  );
+
+  assert.equal(counts.tags.SLG, 2);
+  assert.equal(counts.tags["买量素材"], 1);
+  assert.equal(counts.sets["玩法 / 主题"], 2);
+});
+
 test("createDataStore does not reset an existing data file when JSON parsing fails", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "intel-hub-store-"));
   const dataFile = path.join(dir, "intel-hub.json");

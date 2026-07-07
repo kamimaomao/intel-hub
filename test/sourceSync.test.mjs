@@ -125,7 +125,9 @@ test("parseXianjianDetail converts public detail HTML into a local item", () => 
 
 test("fetchSourceItems imports public Xianjian sitemap details without private API access", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (url) => {
+  const userAgents = [];
+  globalThis.fetch = async (url, options = {}) => {
+    userAgents.push(options.headers?.["User-Agent"]);
     const value = String(url);
     if (value.endsWith("/kb/sitemap.xml")) {
       return new Response(`<urlset><url><loc>https://ai.xianjianwendao.com/kb/item/6073</loc></url></urlset>`, {
@@ -148,6 +150,7 @@ test("fetchSourceItems imports public Xianjian sitemap details without private A
     assert.equal(items.length, 1);
     assert.equal(items[0].title, "公开详情");
     assert.equal(items[0].provider, "xianjian");
+    assert.equal(userAgents.every((userAgent) => userAgent?.includes("Mozilla/5.0")), true);
   } finally {
     globalThis.fetch = originalFetch;
   }

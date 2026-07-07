@@ -5,6 +5,8 @@ const XIANJIAN_SITEMAP_URL = "https://ai.xianjianwendao.com/kb/sitemap.xml";
 const XIANJIAN_IMPORT_LIMIT = Number(process.env.XIANJIAN_IMPORT_LIMIT || 0);
 const XIANJIAN_DETAIL_CONCURRENCY = Math.max(1, Number(process.env.XIANJIAN_DETAIL_CONCURRENCY || 8));
 const XIANJIAN_DETAIL_RETRIES = Math.max(1, Number(process.env.XIANJIAN_DETAIL_RETRIES || 3));
+const FETCH_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
 function unique(values) {
   return [...new Set(values.map((value) => text(value)).filter(Boolean))];
@@ -237,7 +239,7 @@ async function fetchXianjianDetail(detailUrl, source) {
   for (let attempt = 1; attempt <= XIANJIAN_DETAIL_RETRIES; attempt += 1) {
     try {
       const detailResponse = await fetch(detailUrl, {
-        headers: { "User-Agent": "IntelHub/0.1 (+https://intel-hub-production-9449.up.railway.app)" },
+        headers: { "User-Agent": FETCH_USER_AGENT },
       });
       if (detailResponse.status === 429 && attempt < XIANJIAN_DETAIL_RETRIES) {
         await sleep(retryAfterMs(detailResponse, attempt * 1000));
@@ -264,7 +266,7 @@ export async function fetchSourceItems(source, options = {}) {
 
   if (source.provider === "xianjian") {
     const sitemapResponse = await fetch(source.feedUrl || XIANJIAN_SITEMAP_URL, {
-      headers: { "User-Agent": "IntelHub/0.1 (+https://intel-hub-production-9449.up.railway.app)" },
+      headers: { "User-Agent": FETCH_USER_AGENT },
     });
     if (!sitemapResponse.ok) {
       throw providerError(`公开索引请求失败：${sitemapResponse.status}`, sitemapResponse.status, "PROVIDER_FETCH_FAILED");
@@ -284,7 +286,7 @@ export async function fetchSourceItems(source, options = {}) {
       throw providerError(`${source.name} 缺少 feedUrl，无法同步。`);
     }
     const response = await fetch(source.feedUrl, {
-      headers: { "User-Agent": "IntelHub/0.1 (+https://intel-hub-production-9449.up.railway.app)" },
+      headers: { "User-Agent": FETCH_USER_AGENT },
     });
     if (!response.ok) {
       throw providerError(`数据源请求失败：${response.status}`, response.status, "PROVIDER_FETCH_FAILED");

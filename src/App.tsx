@@ -92,6 +92,32 @@ type SyncResult = {
   message?: string;
 };
 
+type DailySyncState = {
+  dailyEnabled: boolean;
+  dailyTime: string;
+  dailyTimeZone: string;
+  dailyLastRunKey: string;
+  dailyLastRunAt: string;
+  dailyLastStatus: "idle" | "syncing" | "success" | "failed" | string;
+  dailyLastImported: number;
+  dailyLastMessage: string;
+};
+
+type DailySyncJob = {
+  status?: DailySyncState["dailyLastStatus"];
+  imported?: number;
+  message?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  runKey?: string;
+};
+
+type DailySyncInfo = {
+  syncState: DailySyncState;
+  syncableSourceCount: number;
+  job?: DailySyncJob | null;
+};
+
 const emptyDraft: SourceDraft = {
   sourceType: "公众号",
   provider: "manual",
@@ -109,6 +135,20 @@ const offlineSourcesKey = "intel-hub-offline-sources-v2";
 const fallbackSources = originalSources as SourceAccount[];
 const fallbackItems: IntelItem[] = [];
 const emptyCounts: ItemCounts = { total: 0, tags: {} };
+const emptyDailySync: DailySyncInfo = {
+  syncState: {
+    dailyEnabled: true,
+    dailyTime: "14:45",
+    dailyTimeZone: "Asia/Shanghai",
+    dailyLastRunKey: "",
+    dailyLastRunAt: "",
+    dailyLastStatus: "idle",
+    dailyLastImported: 0,
+    dailyLastMessage: "",
+  },
+  syncableSourceCount: 0,
+  job: null,
+};
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBase}${url}`, {
@@ -682,9 +722,12 @@ function AdminPage({
   offline,
   saving,
   syncingSourceId,
+  dailySync,
+  dailySyncing,
   onDraftChange,
   onSubmit,
   onSync,
+  onDailySync,
 }: {
   sources: SourceAccount[];
   draft: SourceDraft;
@@ -692,12 +735,19 @@ function AdminPage({
   offline: boolean;
   saving: boolean;
   syncingSourceId: string;
+  dailySync: DailySyncInfo;
+  dailySyncing: boolean;
   onDraftChange: (draft: SourceDraft) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onSync: (sourceId: string) => void;
+  onDailySync: () => void;
 }) {
   const publicAccountCount = sources.filter((source) => (source.sourceType || "公众号") === "公众号").length;
   const videoAccountCount = sources.filter((source) => source.sourceType === "视频号").length;
+  const syncState = dailySync.syncState;
+  const syncStatus = dailySync.job?.status === "syncing" ? "syncing" : syncState.dailyLastStatus;
+  const syncStatusLabel = syncStatus === "syncing" ? "刷新中" : syncStatus === "success" ? "已刷新" : syncStatus === "failed" ? "失败" : "待刷新";
+  const lastRun = syncState.dailyLastRunAt ? syncState.dailyLastRunAt.slice(0, 16).replace("T", " ") : "还没有记录";
 
   return (
     <main className="main-panel admin-panel">
@@ -721,6 +771,19 @@ function AdminPage({
         </div>
       </div>
       {offline && <div className="offline-banner">当前为静态演示模式，公众号保存在本浏览器；接通后端后会写入服务端。</div>}
+      <section className="auto-sync-bar">
+        <div>
+          <strong>自动刷新 · {syncStatusLabel}</strong>
+          <span>
+            每天 {syncState.dailyTime}（{syncState.dailyTimeZone}）刷新 {dailySync.syncableSourceCount} 个可同步来源。
+            上次：{lastRun} · {syncState.dailyLastMessage || "等待首次自动刷新"}
+          </span>
+        </div>
+        <button type="button" onClick={onDailySync} disabled={dailySyncing || syncStatus === "syncing"}>
+          <RefreshCw size={15} />
+          {dailySyncing || syncStatus === "syncing" ? "刷新中" : "立即刷新"}
+        </button>
+      </section>
 
       <section className="admin-grid">
         <article className="admin-card">
@@ -793,6 +856,8 @@ export default function App() {
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [syncingSourceId, setSyncingSourceId] = useState("");
+  const [dailySync, setDailySync] = useState<DailySyncInfo>(emptyDailySync);
+  const [dailySyncing, setDailySyncing] = useState(false);
 
   const currentCount = activeAuthor
     ? sources.find((source) => source.name === activeAuthor)?.itemCount || total
@@ -820,22 +885,25 @@ export default function App() {
       setLoading(true);
       setLoadError("");
       try {
-        const [{ items: nextItems, total: nextTotal }, { sources: nextSources }, { counts: nextCounts }] = offline
+        const [{ items: nextItems, total: nextTotal }, { sources: nextSources }, { counts: nextCounts }, nextDailySync] = offline
           ? [
               { items: filterItems(fallbackItems, activeTag, query), total: fallbackItems.length },
               { sources: loadOfflineSources() },
               { counts: emptyCounts },
+              emptyDailySync,
             ]
           : await Promise.all([
               api<{ items: IntelItem[]; total: number }>(itemUrl),
               api<{ sources: SourceAccount[] }>("/api/sources"),
               api<{ counts: ItemCounts }>("/api/item-counts"),
+              api<DailySyncInfo>("/api/sync/daily"),
             ]);
         if (!cancelled) {
           setItems(nextItems);
           setTotal(nextTotal);
           setSources(nextSources);
           setItemCounts(nextCounts);
+          setDailySync(nextDailySync);
         }
       } finally {
         if (!cancelled) {
@@ -849,6 +917,7 @@ export default function App() {
         setTotal(0);
         setSources(loadOfflineSources());
         setItemCounts(emptyCounts);
+        setDailySync(emptyDailySync);
         setLoadError(error instanceof Error ? error.message : "没有连上真实数据后端。请部署 Node 服务，并配置自己的数据源。");
         setLoading(false);
       }
@@ -920,6 +989,45 @@ export default function App() {
     }
   }
 
+  async function runDailySyncNow() {
+    setDailySyncing(true);
+    setFormError("");
+    try {
+      const started = await api<{ job: DailySyncJob }>("/api/sync/daily/run", { method: "POST" });
+      setDailySync((current) => ({
+        ...current,
+        job: started.job,
+        syncState: {
+          ...current.syncState,
+          dailyLastStatus: "syncing",
+          dailyLastMessage: started.job.message || current.syncState.dailyLastMessage,
+        },
+      }));
+
+      let nextDailySync = await api<DailySyncInfo>("/api/sync/daily");
+      while (nextDailySync.job?.status === "syncing" || nextDailySync.syncState.dailyLastStatus === "syncing") {
+        setDailySync(nextDailySync);
+        await delay(5000);
+        nextDailySync = await api<DailySyncInfo>("/api/sync/daily");
+      }
+
+      const [{ items: nextItems, total: nextTotal }, { sources: nextSources }, { counts: nextCounts }] = await Promise.all([
+        api<{ items: IntelItem[]; total: number }>(itemUrl),
+        api<{ sources: SourceAccount[] }>("/api/sources"),
+        api<{ counts: ItemCounts }>("/api/item-counts"),
+      ]);
+      setDailySync(nextDailySync);
+      setItems(nextItems);
+      setTotal(nextTotal);
+      setSources(nextSources);
+      setItemCounts(nextCounts);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "自动刷新失败");
+    } finally {
+      setDailySyncing(false);
+    }
+  }
+
   return (
     <div className="app-layout">
       <Sidebar
@@ -976,9 +1084,12 @@ export default function App() {
           offline={offline}
           saving={saving}
           syncingSourceId={syncingSourceId}
+          dailySync={dailySync}
+          dailySyncing={dailySyncing}
           onDraftChange={setDraft}
           onSubmit={addSource}
           onSync={syncSource}
+          onDailySync={runDailySyncNow}
         />
       )}
     </div>

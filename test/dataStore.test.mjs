@@ -198,3 +198,26 @@ test("createDataStore does not reset an existing data file when JSON parsing fai
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("createDataStore persists daily sync state", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "intel-hub-store-"));
+  const dataFile = path.join(dir, "intel-hub.json");
+
+  try {
+    const store = createDataStore({ dataFile, seedSources: [] });
+    const state = await store.updateSyncState({
+      dailyLastRunKey: "2026-07-07",
+      dailyLastRunAt: "2026-07-07T06:45:00.000Z",
+      dailyLastStatus: "success",
+      dailyLastImported: 12,
+      dailyLastMessage: "自动刷新 2 个来源，导入 12 条。",
+    });
+    const reloaded = await store.readData();
+
+    assert.equal(state.dailyLastRunKey, "2026-07-07");
+    assert.equal(reloaded.syncState.dailyLastRunKey, "2026-07-07");
+    assert.equal(reloaded.syncState.dailyLastImported, 12);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

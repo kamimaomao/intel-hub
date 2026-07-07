@@ -887,6 +887,56 @@ a:focus-visible {
   font-weight: 700;
 }
 
+.auto-sync-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid #d9e3f2;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 9px 24px rgba(7, 23, 53, 0.06);
+}
+
+.auto-sync-bar div {
+  display: grid;
+  gap: 4px;
+}
+
+.auto-sync-bar strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.auto-sync-bar span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.auto-sync-bar button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cad7e9;
+  border-radius: 8px;
+  background: var(--navy);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.auto-sync-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .admin-grid {
   display: grid;
   grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.12fr);

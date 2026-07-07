@@ -35,6 +35,19 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function normalizeSyncState(value = {}) {
+  return {
+    dailyEnabled: value?.dailyEnabled === false ? false : true,
+    dailyTime: text(value?.dailyTime) || "14:45",
+    dailyTimeZone: text(value?.dailyTimeZone) || "Asia/Shanghai",
+    dailyLastRunKey: text(value?.dailyLastRunKey),
+    dailyLastRunAt: text(value?.dailyLastRunAt),
+    dailyLastStatus: text(value?.dailyLastStatus) || "idle",
+    dailyLastImported: Number(value?.dailyLastImported) || 0,
+    dailyLastMessage: text(value?.dailyLastMessage),
+  };
+}
+
 export function normalizeSource(source) {
   const sourceType = source?.sourceType === "视频号" ? "视频号" : "公众号";
   const name = text(source?.name);
@@ -161,6 +174,7 @@ function normalizeData(raw, seedSources = []) {
   return {
     sources: currentSources,
     items: Array.isArray(raw?.items) ? raw.items.map((item) => normalizeItem(item)).filter((item) => item.id && item.title) : [],
+    syncState: normalizeSyncState(raw?.syncState),
   };
 }
 
@@ -252,6 +266,12 @@ export function createDataStore({ dataFile, seedSources = [] }) {
       data.sources[index] = normalizeSource({ ...data.sources[index], ...patch });
       await writeData(data);
       return data.sources[index];
+    },
+    async updateSyncState(patch) {
+      const data = await readData();
+      data.syncState = normalizeSyncState({ ...data.syncState, ...patch });
+      await writeData(data);
+      return data.syncState;
     },
   };
 }

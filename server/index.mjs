@@ -3,6 +3,14 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { countItems, createDataStore, normalizeTags, slug } from "./dataStore.mjs";
+import {
+  dailySyncKey,
+  defaultDailySyncTime,
+  defaultDailySyncTimeZone,
+  isSyncableSource,
+  runDailySourceSync,
+  startDailySyncScheduler,
+} from "./dailySync.mjs";
 import { fetchSourceItems } from "./sourceSync.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -13,6 +21,13 @@ const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
 const dataStore = createDataStore({ dataFile, seedSources: originalSources });
 const syncJobs = new Map();
+let dailySyncJob = null;
+const dailySyncConfig = {
+  enabled: process.env.AUTO_SYNC_ENABLED !== "0",
+  time: process.env.AUTO_SYNC_TIME || defaultDailySyncTime,
+  timeZone: process.env.AUTO_SYNC_TIMEZONE || defaultDailySyncTimeZone,
+  intervalMs: Math.max(10_000, Number(process.env.AUTO_SYNC_CHECK_INTERVAL_MS || 60_000)),
+};
 const itemCountSets = {
   "发行": [
     "发行·买量数据与素材",
@@ -157,6 +172,24 @@ app.get("/api/sources/:id/sync", async (request, response, next) => {
   }
 });
 
+app.get("/api/sync/daily", async (_request, response, next) => {
+  try {
+    const data = await dataStore.readData();
+    response.json({
+      syncState: {
+        ...data.syncState,
+        dailyEnabled: dailySyncConfig.enabled && data.syncState.dailyEnabled !== false,
+        dailyTime: dailySyncConfig.time,
+        dailyTimeZone: dailySyncConfig.timeZone,
+      },
+      syncableSourceCount: data.sources.filter(isSyncableSource).length,
+      job: dailySyncJob,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/sources", async (request, response, next) => {
   try {
     const name = String(request.body?.name || "").trim();
@@ -207,8 +240,9 @@ async function runSourceSync(sourceId) {
       job.imported = items.length;
       job.message = updatedSource.syncMessage;
     }
+    return { source: updatedSource, status: "success", imported: items.length, message: updatedSource.syncMessage };
   } catch (error) {
-    await dataStore.updateSource(sourceId, {
+    const updatedSource = await dataStore.updateSource(sourceId, {
       lastSyncAt: new Date().toISOString(),
       syncStatus: "failed",
       syncMessage: error.message || "同步失败",
@@ -217,6 +251,40 @@ async function runSourceSync(sourceId) {
       job.status = "failed";
       job.message = error.message || "同步失败";
     }
+    return { source: updatedSource, status: "failed", imported: 0, message: error.message || "同步失败" };
+  }
+}
+
+async function runDailySync({ runKey = dailySyncKey(new Date(), dailySyncConfig.timeZone), reason = "manual" } = {}) {
+  if (dailySyncJob?.status === "syncing") {
+    return dailySyncJob;
+  }
+  dailySyncJob = {
+    status: "syncing",
+    imported: 0,
+    message: reason === "schedule" ? "每日自动刷新中。" : "手动刷新中。",
+    startedAt: new Date().toISOString(),
+    runKey,
+  };
+  try {
+    const result = await runDailySourceSync({
+      dataStore,
+      runKey,
+      syncSource: runSourceSync,
+    });
+    dailySyncJob = { ...dailySyncJob, ...result, status: result.status, finishedAt: new Date().toISOString() };
+    return dailySyncJob;
+  } catch (error) {
+    const message = error.message || "自动刷新失败";
+    await dataStore.updateSyncState({
+      dailyLastRunKey: runKey,
+      dailyLastRunAt: new Date().toISOString(),
+      dailyLastStatus: "failed",
+      dailyLastImported: 0,
+      dailyLastMessage: message,
+    });
+    dailySyncJob = { ...dailySyncJob, status: "failed", imported: 0, message, finishedAt: new Date().toISOString() };
+    return dailySyncJob;
   }
 }
 
@@ -255,6 +323,27 @@ app.post("/api/sources/:id/sync", async (request, response, next) => {
   }
 });
 
+app.post("/api/sync/daily/run", async (_request, response, next) => {
+  try {
+    const runKey = dailySyncKey(new Date(), dailySyncConfig.timeZone);
+    if (dailySyncJob?.status === "syncing") {
+      response.status(202).json({ job: dailySyncJob });
+      return;
+    }
+    runDailySync({ runKey, reason: "manual" }).catch((error) => console.error("Daily sync failed", error));
+    response.status(202).json({
+      job: {
+        status: "syncing",
+        imported: 0,
+        message: "手动刷新中。",
+        runKey,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use(express.static(path.join(rootDir, "dist")));
 app.get("*", (_request, response) => {
   response.sendFile(path.join(rootDir, "dist", "index.html"));
@@ -267,4 +356,16 @@ app.use((error, _request, response, _next) => {
 
 app.listen(port, () => {
   console.log(`Intel Hub server listening on http://localhost:${port}`);
+});
+
+startDailySyncScheduler({
+  enabled: dailySyncConfig.enabled,
+  intervalMs: dailySyncConfig.intervalMs,
+  time: dailySyncConfig.time,
+  timeZone: dailySyncConfig.timeZone,
+  getLastRunKey: async () => {
+    const data = await dataStore.readData();
+    return data.syncState.dailyEnabled === false ? dailySyncKey(new Date(), dailySyncConfig.timeZone) : data.syncState.dailyLastRunKey;
+  },
+  run: ({ runKey }) => runDailySync({ runKey, reason: "schedule" }),
 });

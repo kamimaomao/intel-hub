@@ -19,6 +19,7 @@ const originalSources = JSON.parse(readFileSync(path.join(rootDir, "src", "data"
 const dataDir = process.env.DATA_DIR || path.join(rootDir, "data");
 const dataFile = path.join(dataDir, "intel-hub.json");
 const port = Number(process.env.PORT || 8787);
+const host = process.env.HOST || "0.0.0.0";
 const dataStore = createDataStore({ dataFile, seedSources: originalSources });
 const syncJobs = new Map();
 let dailySyncJob = null;
@@ -354,8 +355,8 @@ app.use((error, _request, response, _next) => {
   response.status(error.status || 500).json({ error: error.message || "服务端错误", code: error.code || "SERVER_ERROR" });
 });
 
-app.listen(port, () => {
-  console.log(`Intel Hub server listening on http://localhost:${port}`);
+app.listen(port, host, () => {
+  console.log(`Intel Hub server listening on http://${host}:${port}`);
 });
 
 startDailySyncScheduler({

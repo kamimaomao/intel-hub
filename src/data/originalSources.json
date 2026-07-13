@@ -56,7 +56,7 @@
     "provider": "feed",
     "feedUrl": "https://www.youxituoluo.com/feed",
     "description": "通过游戏陀螺官方 RSS 自动更新；历史收录参考 229 篇。",
-    "tags": ["行业情报", "公众号"],
+    "tags": ["AI与游戏", "行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
     "originalCount": 229
@@ -108,7 +108,7 @@
     "provider": "feed",
     "feedUrl": "https://www.chuapp.com/feed",
     "description": "通过触乐官方 RSS 自动更新；历史收录参考 208 篇。",
-    "tags": ["行业情报", "公众号"],
+    "tags": ["AI与游戏", "行业情报", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
     "originalCount": 208
@@ -170,7 +170,7 @@
     "provider": "feed",
     "feedUrl": "https://www.baijing.cn/feed",
     "description": "通过白鲸出海官方 RSS 自动更新；历史收录参考 141 篇。",
-    "tags": ["出海", "公众号"],
+    "tags": ["AI与游戏", "出海", "公众号"],
     "status": "启用",
     "createdAt": "2026-07-02",
     "originalCount": 141

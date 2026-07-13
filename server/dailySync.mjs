@@ -1,5 +1,6 @@
 export const defaultDailySyncTime = "14:45";
 export const defaultDailySyncTimeZone = "Asia/Shanghai";
+export const defaultDailySyncRetryIntervalMs = 30 * 60_000;
 
 const syncableProviders = new Set(["feed", "json", "xianjian"]);
 
@@ -33,12 +34,21 @@ export function dailySyncKey(date = new Date(), timeZone = defaultDailySyncTimeZ
 export function shouldRunDailySync({
   now = new Date(),
   lastRunKey = "",
+  lastRunAt = "",
+  lastRunStatus = "idle",
   time = defaultDailySyncTime,
   timeZone = defaultDailySyncTimeZone,
+  retryIntervalMs = defaultDailySyncRetryIntervalMs,
 } = {}) {
   const key = dailySyncKey(now, timeZone);
   if (lastRunKey === key) {
-    return false;
+    if (lastRunStatus !== "failed") {
+      return false;
+    }
+    const lastAttemptAt = Date.parse(lastRunAt);
+    if (Number.isFinite(lastAttemptAt) && now.getTime() - lastAttemptAt < retryIntervalMs) {
+      return false;
+    }
   }
   const parts = zonedParts(now, timeZone);
   const currentMinutes = Number(parts.hour) * 60 + Number(parts.minute);
@@ -76,7 +86,7 @@ export async function runDailySourceSync({
     }
   }
 
-  const status = failed > 0 ? "failed" : "success";
+  const status = failed === 0 ? "success" : failed === sources.length ? "failed" : "partial";
   const message = `自动刷新 ${sources.length} 个来源，导入 ${imported} 条${failed ? `，失败 ${failed} 个来源` : ""}。`;
   await dataStore.updateSyncState({
     dailyLastRunKey: runKey,
@@ -91,6 +101,8 @@ export async function runDailySourceSync({
 export function startDailySyncScheduler({
   enabled = true,
   intervalMs = 60_000,
+  retryIntervalMs = defaultDailySyncRetryIntervalMs,
+  getSyncState,
   getLastRunKey,
   run,
   time = defaultDailySyncTime,
@@ -106,9 +118,19 @@ export function startDailySyncScheduler({
     if (running) {
       return;
     }
-    const lastRunKey = await getLastRunKey();
+    const syncState = getSyncState
+      ? await getSyncState()
+      : { dailyLastRunKey: await getLastRunKey?.() };
     const current = now();
-    if (!shouldRunDailySync({ now: current, lastRunKey, time, timeZone })) {
+    if (!shouldRunDailySync({
+      now: current,
+      lastRunKey: syncState?.dailyLastRunKey,
+      lastRunAt: syncState?.dailyLastRunAt,
+      lastRunStatus: syncState?.dailyLastStatus,
+      time,
+      timeZone,
+      retryIntervalMs,
+    })) {
       return;
     }
     running = true;

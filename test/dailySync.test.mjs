@@ -41,6 +41,19 @@ test("shouldRunDailySync starts at 14:45 Asia/Shanghai once per day", () => {
   );
 });
 
+test("shouldRunDailySync retries a failed run after the retry interval", () => {
+  const base = {
+    lastRunKey: "2026-07-07",
+    lastRunAt: "2026-07-07T06:45:00Z",
+    lastRunStatus: "failed",
+    time: "14:45",
+    timeZone: "Asia/Shanghai",
+    retryIntervalMs: 30 * 60_000,
+  };
+  assert.equal(shouldRunDailySync({ ...base, now: new Date("2026-07-07T07:14:59Z") }), false);
+  assert.equal(shouldRunDailySync({ ...base, now: new Date("2026-07-07T07:15:00Z") }), true);
+});
+
 test("isSyncableSource only allows enabled feed/json/xianjian sources", () => {
   assert.equal(isSyncableSource({ provider: "xianjian", status: "启用" }), true);
   assert.equal(isSyncableSource({ provider: "json", status: "启用" }), true);
@@ -83,4 +96,35 @@ test("runDailySourceSync syncs enabled syncable sources and persists a summary",
   assert.equal(patches[0].dailyLastStatus, "syncing");
   assert.equal(patches.at(-1).dailyLastStatus, "success");
   assert.equal(patches.at(-1).dailyLastImported, 5);
+});
+
+test("runDailySourceSync reports partial success when one source fails", async () => {
+  const patches = [];
+  const dataStore = {
+    async readData() {
+      return {
+        sources: [
+          { id: "blocked", provider: "xianjian", status: "启用" },
+          { id: "feed", provider: "feed", status: "启用" },
+        ],
+      };
+    },
+    async updateSyncState(patch) {
+      patches.push(patch);
+      return patch;
+    },
+  };
+
+  const result = await runDailySourceSync({
+    dataStore,
+    runKey: "2026-07-07",
+    syncSource: async (sourceId) => sourceId === "blocked"
+      ? { status: "failed", imported: 0 }
+      : { status: "success", imported: 2 },
+  });
+
+  assert.equal(result.status, "partial");
+  assert.equal(result.imported, 2);
+  assert.equal(result.failed, 1);
+  assert.equal(patches.at(-1).dailyLastStatus, "partial");
 });

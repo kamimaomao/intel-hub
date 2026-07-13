@@ -28,6 +28,7 @@ const dailySyncConfig = {
   time: process.env.AUTO_SYNC_TIME || defaultDailySyncTime,
   timeZone: process.env.AUTO_SYNC_TIMEZONE || defaultDailySyncTimeZone,
   intervalMs: Math.max(10_000, Number(process.env.AUTO_SYNC_CHECK_INTERVAL_MS || 60_000)),
+  retryIntervalMs: Math.max(60_000, Number(process.env.AUTO_SYNC_RETRY_INTERVAL_MS || 30 * 60_000)),
 };
 const itemCountSets = {
   "发行": [
@@ -362,11 +363,14 @@ app.listen(port, host, () => {
 startDailySyncScheduler({
   enabled: dailySyncConfig.enabled,
   intervalMs: dailySyncConfig.intervalMs,
+  retryIntervalMs: dailySyncConfig.retryIntervalMs,
   time: dailySyncConfig.time,
   timeZone: dailySyncConfig.timeZone,
-  getLastRunKey: async () => {
+  getSyncState: async () => {
     const data = await dataStore.readData();
-    return data.syncState.dailyEnabled === false ? dailySyncKey(new Date(), dailySyncConfig.timeZone) : data.syncState.dailyLastRunKey;
+    return data.syncState.dailyEnabled === false
+      ? { ...data.syncState, dailyLastRunKey: dailySyncKey(new Date(), dailySyncConfig.timeZone) }
+      : data.syncState;
   },
   run: ({ runKey }) => runDailySync({ runKey, reason: "schedule" }),
 });

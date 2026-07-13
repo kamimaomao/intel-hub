@@ -746,7 +746,7 @@ function AdminPage({
   const videoAccountCount = sources.filter((source) => source.sourceType === "视频号").length;
   const syncState = dailySync.syncState;
   const syncStatus = dailySync.job?.status === "syncing" ? "syncing" : syncState.dailyLastStatus;
-  const syncStatusLabel = syncStatus === "syncing" ? "刷新中" : syncStatus === "success" ? "已刷新" : syncStatus === "failed" ? "失败" : "待刷新";
+  const syncStatusLabel = syncStatus === "syncing" ? "刷新中" : syncStatus === "success" ? "已刷新" : syncStatus === "partial" ? "部分成功" : syncStatus === "failed" ? "失败" : "待刷新";
   const lastRun = syncState.dailyLastRunAt ? syncState.dailyLastRunAt.slice(0, 16).replace("T", " ") : "还没有记录";
 
   return (
